@@ -2,6 +2,22 @@
 
 Clean split: **where code lives (Git)** vs **what serves traffic** vs **where data lives**.
 
+## The point (Cursor across platforms)
+
+**Cursor + Git** are the **source of truth for all app code** you open in the workspace: **`pdf-backend`**, segment backends, **`CID_HomeBase`**, **`cid-connect`**, docs. You edit here; **`git push`** is how versions are saved and shared.
+
+**Famous** is **not** “the place we edit Connect forever.” It’s the **runtime** for Connect’s **backend**: DB, Auth, Edge Functions, Storage. The React app **calls** Famous; Famous does **not** need to hold the only copy of the React source.
+
+## Myth vs reality (read this once)
+
+| Wrong | Right |
+|--------|--------|
+| “Push to Git → **Famous pulls** and deploys the frontend” | Famous **does not** offer that Git sync today. **GitHub `cid-connect`** is updated by **Cursor** + **`git push`**. |
+| “Famous AI and Cursor stay in sync through Git automatically” | **No automatic sync.** One-time **export zip from Famous** bootstrapped the repo; **ongoing** work is in **Git/Cursor**. |
+| “We need Famous to see Git” | **Runtime only:** the built or dev app uses **env vars** pointing at Famous’s DB. **No** Famous↔Git pull required for that. |
+
+**Optional:** Netlify (or similar) can **build from Git** for a public URL — that’s **not** Famous pulling Git; it’s a static host reading GitHub.
+
 ## Roles (one glance)
 
 | Piece | What it does | Where it lives |
