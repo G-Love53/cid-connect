@@ -2,6 +2,8 @@
 
 Commercial insurance platform with quoting, policy management, claims, COI requests, and admin dashboard.
 
+**Next dev:** read **`docs/ARCHITECTURE.md`** — Famous vs Git vs Netlify vs `pdf-backend` in one page.
+
 ## Source of truth & workflow (default)
 
 | Step | What |
@@ -10,7 +12,7 @@ Commercial insurance platform with quoting, policy management, claims, COI reque
 | **Run** | **`npm run dev`** locally (`.env` from **`.env.example`** — never commit `.env`) |
 | **Ship** | **`git add` → `git commit` → `git push origin main`** |
 
-Optional later: **Netlify** or other static host from Git — see **`docs/DEPLOY.md`**. Not required.
+Optional: **Netlify** = **static URL + built SPA/forms only** (does not host DB). See **`docs/DEPLOY.md`** and **`docs/ARCHITECTURE.md`**. Not required for local dev.
 
 **Secrets (local):** `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` in **`.env`**.
 

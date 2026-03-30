@@ -16,7 +16,7 @@ GitHub Actions **CI** runs a build on push to `main` (sanity check).
 
 ## Optional: Netlify (or Vercel / Cloudflare Pages)
 
-Only if you want a **hosted URL** that auto-builds from Git — not needed for local-only work.
+**Netlify only serves URLs and static assets** (built JS/CSS + HTML). It does **not** replace Famous (DB/Edge) or Render (CID-PDF-API). Connect the repo to Netlify only if you want a **public URL** without running `npm run dev`.
 
 1. Import **`G-Love53/cid-connect`** / **`main`**.
 2. Env: **`VITE_SUPABASE_URL`**, **`VITE_SUPABASE_ANON_KEY`** (same as local `.env`).
