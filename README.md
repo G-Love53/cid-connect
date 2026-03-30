@@ -2,11 +2,17 @@
 
 Commercial insurance platform with quoting, policy management, claims, COI requests, and admin dashboard.
 
-## Source of truth & deploy
+## Source of truth & workflow (default)
 
-- **Code:** This **GitHub** repo (`main`). Edit in **Cursor**; do not rely on Famous for Git sync.
-- **Deploy:** Connect **Netlify** (or similar) to this repo — see **`docs/DEPLOY.md`**. Famous stays DB/Edge; production app can live on Netlify.
-- **Secrets:** `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` — set in Netlify env and local **`.env`** (copy **`.env.example`**; never commit `.env`).
+| Step | What |
+|------|------|
+| **Edit** | **Cursor** — `cid-connect` repo |
+| **Run** | **`npm run dev`** locally (`.env` from **`.env.example`** — never commit `.env`) |
+| **Ship** | **`git add` → `git commit` → `git push origin main`** |
+
+Optional later: **Netlify** or other static host from Git — see **`docs/DEPLOY.md`**. Not required.
+
+**Secrets (local):** `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` in **`.env`**.
 
 ## Tech Stack
 

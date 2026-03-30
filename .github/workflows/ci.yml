@@ -15,7 +15,7 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
-      - run: npm ci
+      - run: npm install
       - name: Build
         env:
           VITE_SUPABASE_URL: https://example.databasepad.com

@@ -1,26 +1,29 @@
-# Deploy CID Connect (Git is source of truth)
+# Deploy CID Connect
 
-**Famous does not need to hold the only copy of frontend code.** Push to **GitHub**, deploy from there.
-
-## Netlify (recommended)
-
-1. [Netlify](https://app.netlify.com) → **Add new site** → **Import an existing project** → **GitHub** → repo **`G-Love53/cid-connect`**, branch **`main`**.
-2. Build settings (also in repo **`netlify.toml`**):
-   - Build command: `npm run build`
-   - Publish directory: `dist`
-3. **Environment variables** (Site → Environment variables):
-   - `VITE_SUPABASE_URL` — from Famous / Database (e.g. `*.databasepad.com`)
-   - `VITE_SUPABASE_ANON_KEY` — anon/public key (same as used in browser)
-4. Trigger deploy. Production URL will be something like `https://xxx.netlify.app`.
-
-## Local dev after pulling repo
+**Default workflow:** develop **locally** (`npm run dev`), then **`git push`** to GitHub. No extra platform required.
 
 ```bash
-cp .env.example .env
-# Edit .env — paste URL + anon key from Famous (never commit .env)
-npm install && npm run dev
+cp .env.example .env   # once — fill VITE_* from Famous
+npm install
+npm run dev
+# … edit …
+git add -A && git commit -m "..." && git push origin main
 ```
 
-## CI
+GitHub Actions **CI** runs a build on push to `main` (sanity check).
 
-GitHub Actions **CI** runs `npm ci` + `npm run build` on every push to `main` (uses dummy env only to verify the build compiles).
+---
+
+## Optional: Netlify (or Vercel / Cloudflare Pages)
+
+Only if you want a **hosted URL** that auto-builds from Git — not needed for local-only work.
+
+1. Import **`G-Love53/cid-connect`** / **`main`**.
+2. Env: **`VITE_SUPABASE_URL`**, **`VITE_SUPABASE_ANON_KEY`** (same as local `.env`).
+3. Repo **`netlify.toml`** has build + SPA redirect.
+
+---
+
+## Optional: Famous deploypad
+
+If you still publish previews from **Famous**, that’s separate from Git — **GitHub remains the code source of truth**; avoid editing only in Famous without pulling into this repo.
