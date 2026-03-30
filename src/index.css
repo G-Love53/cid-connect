@@ -1,0 +1,183 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Safe area utilities */
+.pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom), 0px);
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 215 25% 20%;
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 20%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 20%;
+    /* Primary: Orange from CID logo */
+    --primary: 28 94% 54%;
+    --primary-foreground: 0 0% 100%;
+    /* Secondary: Navy Blue from CID logo */
+    --secondary: 213 54% 24%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 28 94% 95%;
+    --accent-foreground: 28 94% 40%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 28 94% 54%;
+    --radius: 0.5rem;
+    
+    /* Custom CID Brand Colors */
+    --cid-orange: #F7941D;
+    --cid-orange-dark: #E07D0D;
+    --cid-orange-light: #FDB54E;
+    --cid-navy: #1B3A5F;
+    --cid-navy-dark: #142B47;
+    --cid-navy-light: #2C5282;
+  }
+
+  .dark {
+    --background: 215 25% 8%;
+    --foreground: 210 40% 98%;
+    --card: 215 25% 12%;
+    --card-foreground: 210 40% 98%;
+    --popover: 215 25% 12%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 28 94% 54%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 213 54% 30%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 28 94% 20%;
+    --accent-foreground: 28 94% 80%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 28 94% 54%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Safe area insets for mobile */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Animations */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Line clamp utility */
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Touch improvements for mobile */
+button, a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+input, textarea, select {
+  font-size: 16px; /* Prevents zoom on iOS */
+}
+
+/* Smooth transitions */
+* {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* CID Brand Utility Classes */
+.bg-cid-orange {
+  background-color: var(--cid-orange);
+}
+
+.bg-cid-navy {
+  background-color: var(--cid-navy);
+}
+
+.text-cid-orange {
+  color: var(--cid-orange);
+}
+
+.text-cid-navy {
+  color: var(--cid-navy);
+}
+
+.border-cid-orange {
+  border-color: var(--cid-orange);
+}
+
+.border-cid-navy {
+  border-color: var(--cid-navy);
+}
