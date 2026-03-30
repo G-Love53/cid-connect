@@ -1,10 +1,14 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from "@supabase/supabase-js";
 
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
 
-// Initialize database client
-const supabaseUrl = 'https://zyaqtsmeeygcyqrvpyuy.databasepad.com';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImQ4MTMyOTM4LWE5NjQtNGIyNC05ZTQ5LWEzMmUxNjgyNjM1NyJ9.eyJwcm9qZWN0SWQiOiJ6eWFxdHNtZWV5Z2N5cXJ2cHl1eSIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzY1NjU3NTkwLCJleHAiOjIwODEwMTc1OTAsImlzcyI6ImZhbW91cy5kYXRhYmFzZXBhZCIsImF1ZCI6ImZhbW91cy5jbGllbnRzIn0.ipb_yJPI5X-GSzR0m2qlylcxdQTM---MFvCYw-DSgUw';
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error(
+    "Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY. Copy .env.example to .env and set values (see docs/DEPLOY.md).",
+  );
+}
+
 const supabase = createClient(supabaseUrl, supabaseKey);
-
 
 export { supabase };

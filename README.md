@@ -2,6 +2,12 @@
 
 Commercial insurance platform with quoting, policy management, claims, COI requests, and admin dashboard.
 
+## Source of truth & deploy
+
+- **Code:** This **GitHub** repo (`main`). Edit in **Cursor**; do not rely on Famous for Git sync.
+- **Deploy:** Connect **Netlify** (or similar) to this repo — see **`docs/DEPLOY.md`**. Famous stays DB/Edge; production app can live on Netlify.
+- **Secrets:** `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` — set in Netlify env and local **`.env`** (copy **`.env.example`**; never commit `.env`).
+
 ## Tech Stack
 
 - **Frontend:** React + TypeScript + Vite + Tailwind CSS + shadcn/ui
