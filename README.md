@@ -310,7 +310,8 @@ src/
 │   ├── services/                   # Claims, COI, Chat, Billing, Carrier Detail
 │   ├── coverage/                   # Dedicated "Am I Covered?" tab
 │   ├── coi/                        # Dedicated Instant COI tab
-│   ├── onboarding/                 # Post-bind onboarding flow
+│   ├── onboarding/                 # PostBindOnboarding.tsx — post-bind onboarding flow
+│   ├── auth/                       # Login, BindTokenRedemption (bind-link URL routing)
 │   ├── policy/                     # Policy vault & timeline
 │   └── navigation/                 # Header & bottom nav
 ├── contexts/                       # Auth & App context providers
@@ -323,8 +324,8 @@ reference/
 ├── cid-pdf-api/
 │   └── coverage-inference-contract.md
 ├── functions/
-│   └── coverage-chat/
-│       └── index.ts
+│   ├── coverage-chat/
+│   │   └── index.ts
 │   └── redeem-bind-token/
 │       └── index.ts
 ├── cid-connect-famous/
@@ -374,9 +375,10 @@ reference/
 ## Bind Token Onboarding
 
 - Invite links use format: `/?bind_token=<raw_token>&email=<intended_email>`.
-- Admin issues/revokes tokens from **Admin Dashboard -> Bind Tokens**.
-- Token flow: validate -> redeem -> link `policies.user_id` -> one-time onboarding.
+- Admin issues/revokes tokens from **Admin Dashboard -> Bind Tokens** (`BindTokensTab.tsx`, not `AdminBindTokens.tsx`).
+- Token flow: validate -> redeem -> link `policies.user_id` -> one-time onboarding (`PostBindOnboarding.tsx` lives under `src/components/onboarding/`).
 - New users are shown a guided post-bind onboarding screen until `profiles.onboarding_completed = true`.
+- **DB:** redemption is stored as `policy_bind_tokens.used_at` / `used_by` (UI may say "redeemed"; there is no `redeemed_at` column). Full alias table: `docs/WORKFLOW_HANDOFF.md` (Canonical names).
 
 ## Secrets
 

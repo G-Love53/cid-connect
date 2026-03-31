@@ -45,6 +45,9 @@ Clean split: **where code lives (Git)** vs **what serves traffic** vs **where da
 
 - Bind links attach users to policies by `policy_id`, not by a hardcoded segment route.
 - Result: onboarding flow works across all current segments when policy records are present.
+- **Schema:** `policy_bind_tokens` uses `used_at` (single-use redemption time) and `used_by` — not `redeemed_at`.
+- **App:** `BindTokenRedemption` → signup/redeem → `PostBindOnboarding` until `profiles.onboarding_completed`.
+- **Paths:** `src/components/auth/BindTokenRedemption.tsx`, `src/components/onboarding/PostBindOnboarding.tsx`, admin `src/components/admin/BindTokensTab.tsx` (not `AdminBindTokens.tsx`).
 
 ## RSS (single backend rule)
 

@@ -41,9 +41,10 @@ Use this when deploying bind-link onboarding updates to Famous.
 3. Run migrations in SQL Editor:
    - `reference/migrations/003_policy_bind_tokens.sql`
    - `reference/migrations/004_profiles_onboarding_completed.sql`
-4. Verify secrets used by `redeem-bind-token`:
+4. Verify secrets used by `redeem-bind-token` (Edge Function runtime — standard Supabase names):
    - `SUPABASE_URL`
    - `SUPABASE_SERVICE_ROLE_KEY`
+   - Do **not** rely on ad-hoc names like `database_URL` / `database_SERVICE_ROLE_KEY`; the function source reads `SUPABASE_*` only (`reference/functions/redeem-bind-token/index.ts`).
 5. Run smoke test runbook:
    - `reference/docs/BIND_TOKEN_SMOKE_TEST.md`
 

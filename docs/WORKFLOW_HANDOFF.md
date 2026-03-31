@@ -52,3 +52,18 @@ For each completed change:
 ## Failure Handling
 
 If any required handoff item is missing, implementation pauses until the patch is complete.
+
+## Canonical names (avoid drift with informal labels)
+
+Git is the source of truth. If documentation or chat uses a different label, map it here:
+
+| Topic | Canonical in Git | Informal / avoid |
+|--------|------------------|------------------|
+| Token redemption timestamp | `policy_bind_tokens.used_at` | `redeemed_at` |
+| Who redeemed | `policy_bind_tokens.used_by` | — |
+| Admin bind-token UI | `src/components/admin/BindTokensTab.tsx` | `AdminBindTokens.tsx` |
+| Post-signup onboarding | `src/components/onboarding/PostBindOnboarding.tsx` | `auth/PostBindOnboarding.tsx` |
+| Bind-link entry / routing | `src/components/auth/BindTokenRedemption.tsx` | — |
+| `redeem-bind-token` secrets | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | ad-hoc `database_*` names |
+
+UI copy may still say **redeemed**; that maps to **`used_at`** in the database.

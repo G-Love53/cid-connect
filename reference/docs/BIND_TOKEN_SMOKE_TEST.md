@@ -2,6 +2,8 @@
 
 Use this checklist to validate bind-link onboarding end-to-end.
 
+**Naming:** Redemption time is stored in **`policy_bind_tokens.used_at`** (and **`used_by`**). Do not expect a `redeemed_at` column. UI labels may say "redeemed."
+
 This flow is segment-agnostic (policy-based linkage), so run it against at least one policy from each active segment during full regression.
 
 ## Preconditions
