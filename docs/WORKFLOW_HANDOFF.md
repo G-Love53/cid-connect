@@ -53,6 +53,15 @@ For each completed change:
 
 If any required handoff item is missing, implementation pauses until the patch is complete.
 
+## Smoke test runbooks (Git paths)
+
+| Scope | Path |
+|--------|------|
+| Bind-token onboarding (validate / redeem / onboarding flag) | `reference/docs/BIND_TOKEN_SMOKE_TEST.md` |
+| Full app E2E (admin, quotes, webhooks, etc.) | `reference/cid-connect-famous/E2E_SMOKE_TEST.md` |
+
+`redeem-bind-token` uses **`SUPABASE_URL`** + **`SUPABASE_SERVICE_ROLE_KEY`** (see `reference/functions/redeem-bind-token/index.ts` and `docs/DEPLOY.md`). Do not document **`database_*`** names for that function.
+
 ## Canonical names (avoid drift with informal labels)
 
 Git is the source of truth. If documentation or chat uses a different label, map it here:
