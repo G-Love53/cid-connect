@@ -41,6 +41,11 @@ Clean split: **where code lives (Git)** vs **what serves traffic** vs **where da
 - Performance target: sub-200ms policy reads with index on `famous_user_id`; cache summaries for 5 minutes.
 - Degraded mode: show a temporary-unavailable message and cached summary while fresh data refreshes.
 
+## Bind-token onboarding (cross-segment)
+
+- Bind links attach users to policies by `policy_id`, not by a hardcoded segment route.
+- Result: onboarding flow works across all current segments when policy records are present.
+
 ## RSS (single backend rule)
 
 Intake and notify flows use **one** `cid-pdf-api` host with **`segment`** in the JSON body — not a separate operator stack per segment repo. Details: `pdf-backend` / `DOCUMENTATION.md` / CID-docs.

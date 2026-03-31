@@ -2,6 +2,8 @@
 
 Use this checklist to validate bind-link onboarding end-to-end.
 
+This flow is segment-agnostic (policy-based linkage), so run it against at least one policy from each active segment during full regression.
+
 ## Preconditions
 
 - Migration applied: `reference/migrations/003_policy_bind_tokens.sql`
