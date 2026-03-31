@@ -19,6 +19,9 @@ async function sha256Hex(value: string): Promise<string> {
   return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+// Required env (Supabase Edge Function runtime): SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY (see Deno.env.get below).
+// This file does not read database_URL, database_SERVICE_ROLE_KEY, or other ad-hoc aliases.
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 
