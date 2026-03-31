@@ -66,4 +66,18 @@ Git is the source of truth. If documentation or chat uses a different label, map
 | Bind-link entry / routing | `src/components/auth/BindTokenRedemption.tsx` | — |
 | `redeem-bind-token` secrets | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | ad-hoc `database_*` names |
 
-UI copy may still say **redeemed**; that maps to **`used_at`** in the database.
+User-facing labels for redeemed tokens use **Used**; internal status values may still be `'redeemed'` for compatibility. Both map to **`used_at`** in the database.
+
+---
+
+## Next session (start here)
+
+Paste this as the first message when resuming work:
+
+1. **Baseline SHA:** `74e6834` (pull `main` and confirm `git rev-parse HEAD` matches before changing code).
+2. **Source of truth:** GitHub — no dashboard-only final state. Famous supplies full patch handoffs per **Required Patch Handoff Format** above; Cursor applies, verifies, commits, pushes.
+3. **Scope:** Feature coding for bind-token naming / admin UI cleanup is **closed** unless you open a new ticket with **one** concrete objective (single sentence).
+
+**Next single objective (fill in before coding):**
+
+> _Example: “Deploy migrations 003–004 and `redeem-bind-token` to Famous prod, then run `reference/docs/BIND_TOKEN_SMOKE_TEST.md`.”_
