@@ -2,7 +2,7 @@
 
 Commercial insurance platform with quoting, policy management, claims, COI requests, and admin dashboard.
 
-**Next dev:** read **`docs/ARCHITECTURE.md`** and **`docs/AI_MODEL_POLICY.md`**.
+**Next dev:** read **`docs/ARCHITECTURE.md`**, **`docs/AI_MODEL_POLICY.md`**, and **`docs/WORKFLOW_HANDOFF.md`**.
 
 ## Source of truth & workflow (default)
 
@@ -11,6 +11,8 @@ Commercial insurance platform with quoting, policy management, claims, COI reque
 | **Edit** | **Cursor** — `cid-connect` repo |
 | **Run** | **`npm run dev`** locally (`.env` from **`.env.example`** — never commit `.env`) |
 | **Ship** | **`git add` → `git commit` → `git push origin main`** |
+
+**Handoff rule:** Famous provides patch handoffs only; Cursor agent applies, verifies, commits, and pushes. A task is done only when a GitHub commit SHA is posted.
 
 Optional: **Netlify** = **static URL + built SPA/forms only** (does not host DB). See **`docs/DEPLOY.md`** and **`docs/ARCHITECTURE.md`**. Not required for local dev.
 
