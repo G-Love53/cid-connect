@@ -9,6 +9,21 @@ async function sha256HexUtf8(text: string): Promise<string> {
     .join("");
 }
 
+/** Supabase/PostgREST often throws plain objects, not Error — avoid "[object Object]". */
+function errorToString(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (e && typeof e === "object") {
+    const o = e as Record<string, unknown>;
+    if (o.message != null) return String(o.message);
+    try {
+      return JSON.stringify(e);
+    } catch {
+      return "[unserializable_error]";
+    }
+  }
+  return String(e);
+}
+
 Deno.serve(async (req) => {
   const cors = {
     "Access-Control-Allow-Origin": "*",
@@ -159,7 +174,7 @@ Deno.serve(async (req) => {
       headers: { ...cors, "Content-Type": "application/json" },
     });
   } catch (e) {
-    return new Response(JSON.stringify({ ok: false, error: (e as Error).message }), {
+    return new Response(JSON.stringify({ ok: false, error: errorToString(e) }), {
       status: 500,
       headers: { ...cors, "Content-Type": "application/json" },
     });
