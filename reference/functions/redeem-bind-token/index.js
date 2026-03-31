@@ -28,7 +28,16 @@ Deno.serve(async (req) => {
   const sb = createClient(url, serviceRole);
 
   try {
-    const body = await req.json();
+    let body = {};
+    try {
+      const raw = await req.text();
+      if (raw && raw.trim()) body = JSON.parse(raw);
+    } catch {
+      return new Response(JSON.stringify({ ok: false, error: "invalid_json_body" }), {
+        status: 400,
+        headers: { ...cors, "Content-Type": "application/json" },
+      });
+    }
     const action = body.action ?? "validate";
     const token = body.token?.trim();
     const email = body.email?.trim().toLowerCase();
