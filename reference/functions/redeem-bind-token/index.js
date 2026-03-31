@@ -1,6 +1,6 @@
 // Deno Edge Function
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { createHash } from "node:crypto";
+import { sha256 } from "https://esm.sh/@noble/hashes@1.8.0/sha256.js";
 
 Deno.serve(async (req) => {
   const cors = {
@@ -8,9 +8,10 @@ Deno.serve(async (req) => {
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   };
 
-  /** SHA-256 hex; use node:crypto (Famous/runtime may not support crypto.subtle). */
+  /** SHA-256 hex; pure JS (no crypto.subtle, no node:crypto — both break some Famous runtimes / validators). */
   function sha256Hex(value) {
-    return createHash("sha256").update(value, "utf8").digest("hex");
+    const bytes = sha256(new TextEncoder().encode(value));
+    return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
   }
 
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
