@@ -1,8 +1,7 @@
 import React from 'react';
-import { 
+import {
   FileText, 
   AlertTriangle, 
-  MessageCircle,
   ChevronRight,
   FileSearch,
   RefreshCw,
@@ -74,28 +73,12 @@ const ServicesScreen: React.FC<ServicesScreenProps> = ({
 
   const primaryServices = [
     {
-      id: 'coi',
-      title: 'Request COI',
-      description: 'Get a Certificate of Insurance for your clients or vendors',
-      icon: FileText,
-      color: 'bg-[#1B3A5F]',
-      onClick: onRequestCOI
-    },
-    {
       id: 'claim',
       title: 'File a Claim',
       description: 'Report an incident, accident, or loss',
       icon: AlertTriangle,
       color: 'bg-[#F7941D]',
       onClick: onFileClaim
-    },
-    {
-      id: 'chat',
-      title: 'Policy Chat',
-      description: 'Ask questions about your coverage limits and deductibles',
-      icon: MessageCircle,
-      color: 'bg-green-500',
-      onClick: onCoverageChat
     }
   ];
 
@@ -212,6 +195,29 @@ const ServicesScreen: React.FC<ServicesScreenProps> = ({
       )}
 
 
+
+      {/* Featured */}
+      <div className="space-y-3">
+        <h2 className="text-lg font-semibold text-gray-800">Featured</h2>
+        <div className="grid gap-3">
+          <button onClick={onRequestCOI} className="w-full bg-white rounded-xl shadow-md p-4 flex items-center gap-4 hover:shadow-lg transition-all">
+            <div className="p-3 rounded-xl bg-[#F7941D]"><FileText className="w-6 h-6 text-white" /></div>
+            <div className="flex-1 text-left">
+              <h3 className="font-semibold text-gray-800">Instant COI</h3>
+              <p className="text-sm text-gray-500">Fast certificate workflow in its own tab</p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-gray-400" />
+          </button>
+          <button onClick={onCoverageChat} className="w-full bg-white rounded-xl shadow-md p-4 flex items-center gap-4 hover:shadow-lg transition-all">
+            <div className="p-3 rounded-xl bg-green-500"><MessageCircle className="w-6 h-6 text-white" /></div>
+            <div className="flex-1 text-left">
+              <h3 className="font-semibold text-gray-800">Am I Covered?</h3>
+              <p className="text-sm text-gray-500">Claude AI with Gemini fallback transparency</p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-gray-400" />
+          </button>
+        </div>
+      </div>
 
       {/* Primary Services */}
       <div className="space-y-3">

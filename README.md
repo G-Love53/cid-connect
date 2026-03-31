@@ -2,7 +2,7 @@
 
 Commercial insurance platform with quoting, policy management, claims, COI requests, and admin dashboard.
 
-**Next dev:** read **`docs/ARCHITECTURE.md`** — Famous vs Git vs Netlify vs `pdf-backend` in one page.
+**Next dev:** read **`docs/ARCHITECTURE.md`** and **`docs/AI_MODEL_POLICY.md`**.
 
 ## Source of truth & workflow (default)
 
@@ -22,7 +22,7 @@ Optional: **Netlify** = **static URL + built SPA/forms only** (does not host DB)
 - **Backend:** Supabase (Auth, Database, Edge Functions, Storage, Realtime)
 - **Segment APIs:** Render-hosted backends per segment (Plumber, Roofer, Bar)
 - **Email:** Resend via Edge Functions
-- **AI:** Gemini Flash via `coverage-chat` Edge Function
+- **AI:** Claude primary + Gemini fallback via Render-proxied inference (`coverage-chat`)
 
 ## Getting Started
 
@@ -305,6 +305,8 @@ src/
 │   ├── history/
 │   │   └── QuoteHistory.tsx        # Quote history with compare mode
 │   ├── services/                   # Claims, COI, Chat, Billing, Carrier Detail
+│   ├── coverage/                   # Dedicated "Am I Covered?" tab
+│   ├── coi/                        # Dedicated Instant COI tab
 │   ├── policy/                     # Policy vault & timeline
 │   └── navigation/                 # Header & bottom nav
 ├── contexts/                       # Auth & App context providers
@@ -312,10 +314,16 @@ src/
 └── types/index.ts                  # TypeScript interfaces
 
 reference/
+├── cid-pdf-api/
+│   └── coverage-inference-contract.md
+├── functions/
+│   └── coverage-chat/
+│       └── index.ts
 ├── cid-connect-famous/
 │   └── E2E_SMOKE_TEST.md           # End-to-end smoke test script
 └── migrations/
-    └── 001_setup_pg_cron_renewal_check.sql
+    ├── 001_setup_pg_cron_renewal_check.sql
+    └── 002_chat_model_audit_log.sql
 ```
 
 ## Edge Functions

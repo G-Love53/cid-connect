@@ -7,7 +7,6 @@ import QuoteScreen from './quote/QuoteScreen';
 import ServicesScreen from './services/ServicesScreen';
 import RequestCOI from './services/RequestCOI';
 import FileClaim from './services/FileClaim';
-import CoverageChat from './services/CoverageChat';
 import UpdatePaymentMethod from './services/UpdatePaymentMethod';
 import DownloadDocuments from './services/DownloadDocuments';
 import Billing from './services/Billing';
@@ -20,6 +19,8 @@ import ClaimDetail from './services/ClaimDetail';
 import RenewalReminders from './renewal/RenewalReminders';
 import RenewalComparison from './renewal/RenewalComparison';
 import ProfileScreen from './profile/ProfileScreen';
+import AmICoveredChat from './coverage/AmICoveredChat';
+import InstantCOI from './coi/InstantCOI';
 import AdminDashboard from './admin/AdminDashboard';
 import AdminTrainAI from './admin/AdminTrainAI';
 import QuoteHistory from './history/QuoteHistory';
@@ -38,7 +39,6 @@ type ServiceView =
   | 'payment' 
   | 'documents' 
   | 'billing'
-  | 'coi-history'
   | 'claim-history'
   | 'claim-detail'
   | 'renewal-reminders' 
@@ -59,6 +59,7 @@ const MainApp: React.FC = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('policy');
   const [serviceView, setServiceView] = useState<ServiceView>('main');
+  const [coiView, setCoiView] = useState<'hub' | 'form' | 'history'>('hub');
   const [isAdmin, setIsAdmin] = useState(false);
   const [selectedClaim, setSelectedClaim] = useState<Claim | null>(null);
   const [selectedCarrierId, setSelectedCarrierId] = useState<string | null>(null);
@@ -80,8 +81,8 @@ const MainApp: React.FC = () => {
   }, [user]);
 
   const handleRequestCOI = () => {
-    setServiceView('coi');
-    setActiveTab('services');
+    setCoiView('form');
+    setActiveTab('coi');
   };
 
   const handleFileClaim = () => {
@@ -90,7 +91,7 @@ const MainApp: React.FC = () => {
   };
 
   const handleCoverageChat = () => {
-    setActiveTab('chat');
+    setActiveTab('covered');
   };
 
   const handleUpdatePayment = () => {
@@ -109,8 +110,8 @@ const MainApp: React.FC = () => {
   };
 
   const handleCoiHistory = () => {
-    setServiceView('coi-history');
-    setActiveTab('services');
+    setCoiView('history');
+    setActiveTab('coi');
   };
 
   const handleClaimHistory = () => {
@@ -211,8 +212,8 @@ const MainApp: React.FC = () => {
         break;
       }
       case 'coi':
-        setServiceView('coi-history');
-        setActiveTab('services');
+        setCoiView('history');
+        setActiveTab('coi');
         break;
       case 'policy':
         setActiveTab('policy');
@@ -222,9 +223,18 @@ const MainApp: React.FC = () => {
   };
 
   const renderContent = () => {
-    // Handle Chat tab separately
-    if (activeTab === 'chat') {
-      return <CoverageChat onBack={handleBackToPolicy} />;
+    if (activeTab === 'covered') {
+      return <AmICoveredChat onBack={handleBackToPolicy} />;
+    }
+
+    if (activeTab === 'coi') {
+      if (coiView === 'form') {
+        return <RequestCOI onBack={() => setCoiView('hub')} />;
+      }
+      if (coiView === 'history') {
+        return <COIRequestHistory onBack={() => setCoiView('hub')} />;
+      }
+      return <InstantCOI onStartRequest={() => setCoiView('form')} onViewHistory={() => setCoiView('history')} />;
     }
 
     // Handle Quote tab — pass selectedQuoteId so QuoteScreen loads it
@@ -242,20 +252,14 @@ const MainApp: React.FC = () => {
     // Handle Services tab with sub-views
     if (activeTab === 'services') {
       switch (serviceView) {
-        case 'coi':
-          return <RequestCOI onBack={handleBackToServices} />;
         case 'claim':
           return <FileClaim onBack={handleBackToServices} />;
-        case 'chat':
-          return <CoverageChat onBack={handleBackToServices} />;
         case 'payment':
           return <UpdatePaymentMethod onBack={handleBackToServices} />;
         case 'documents':
           return <DownloadDocuments onBack={handleBackToServices} />;
         case 'billing':
           return <Billing onBack={handleBackToServices} />;
-        case 'coi-history':
-          return <COIRequestHistory onBack={handleBackToServices} />;
         case 'claim-history':
           return (
             <ClaimHistory 
@@ -399,8 +403,14 @@ const MainApp: React.FC = () => {
 
 
   const getTitle = () => {
-    if (activeTab === 'chat') {
-      return 'Policy Chat';
+    if (activeTab === 'covered') {
+      return 'Am I Covered?';
+    }
+
+    if (activeTab === 'coi') {
+      if (coiView === 'form') return 'Request COI';
+      if (coiView === 'history') return 'COI History';
+      return 'Instant COI';
     }
 
     if (activeTab === 'quote') {
@@ -409,20 +419,14 @@ const MainApp: React.FC = () => {
     
     if (activeTab === 'services') {
       switch (serviceView) {
-        case 'coi':
-          return 'Request COI';
         case 'claim':
           return 'File a Claim';
-        case 'chat':
-          return 'Policy Chat';
         case 'payment':
           return 'Update Payment';
         case 'documents':
           return 'Documents';
         case 'billing':
           return 'Payments & Billing';
-        case 'coi-history':
-          return 'COI History';
         case 'renewal-reminders':
           return 'Renewal Reminders';
         case 'shop-renewal':
@@ -465,6 +469,9 @@ const MainApp: React.FC = () => {
   const handleTabChange = (tab: TabType) => {
     if (tab !== 'services') {
       setServiceView('main');
+    }
+    if (tab !== 'coi') {
+      setCoiView('hub');
     }
     // Clear loaded quote when navigating away from quote tab
     if (tab !== 'quote') {

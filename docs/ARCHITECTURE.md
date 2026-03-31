@@ -23,7 +23,8 @@ Clean split: **where code lives (Git)** vs **what serves traffic** vs **where da
 | Piece | What it does | Where it lives |
 |-------|----------------|----------------|
 | **This repo (`cid-connect`)** | React app — Connect UI, forms, admin | **GitHub** → you edit in Cursor, run `npm run dev`, `git push` |
-| **Famous** | Database, Auth, Edge Functions, Storage (e.g. `*.databasepad.com`) | **Famous** dashboard — not a duplicate of this frontend source |
+| **Famous** | Auth/session, app state, Edge Functions, Storage (e.g. `*.databasepad.com`) | **Famous** dashboard — not a duplicate of this frontend source |
+| **cid-postgres** | Canonical insurance data (policies, documents, clients) written by pipeline | Accessed by backend service layer (read-only path for Connect) |
 | **Netlify** *(optional)* | **Static hosting only** — public **URL** + serves built HTML/JS (forms hit APIs + Famous) | Connect repo to Netlify if you want a hosted URL; otherwise skip |
 | **CID-PDF-API** | Universal ops / intake / `segment` in JSON (**RSS**) | **`pdf-backend`** repo on Render → `cid-pdf-api.onrender.com` |
 | **Segment backends** | Quote PDF / render per vertical (plumber, roofer, …) | Separate repos (`plumber-pdf-backend`, …) on Render |
@@ -31,6 +32,14 @@ Clean split: **where code lives (Git)** vs **what serves traffic** vs **where da
 ## Netlify in one line
 
 **Netlify does not replace Famous.** It only **serves the built frontend** (and URL) if you connect it to this repo. The app still talks to **Famous** for DB and to **Render** for CID APIs.
+
+## Data bridge (approved)
+
+- Connect browser uses Famous auth/session context; browser never gets service-role credentials.
+- Policy/doc/client reads come from `cid-postgres` through a backend service (with read-replica + pooling), not direct browser DB access.
+- Identity mapping: Famous `user.id` (UUID) maps to insurance records via `clients.famous_user_id`.
+- Performance target: sub-200ms policy reads with index on `famous_user_id`; cache summaries for 5 minutes.
+- Degraded mode: show a temporary-unavailable message and cached summary while fresh data refreshes.
 
 ## RSS (single backend rule)
 

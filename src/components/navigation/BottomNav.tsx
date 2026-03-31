@@ -1,7 +1,7 @@
 import React from 'react';
-import { Shield, FileText, MessageCircle, User, PlusCircle } from 'lucide-react';
+import { Shield, FileText, User, PlusCircle, Sparkles, MessageCircle } from 'lucide-react';
 
-export type TabType = 'policy' | 'quote' | 'services' | 'chat' | 'profile';
+export type TabType = 'policy' | 'quote' | 'coi' | 'covered' | 'services' | 'profile';
 
 interface BottomNavProps {
   activeTab: TabType;
@@ -10,10 +10,11 @@ interface BottomNavProps {
 
 const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange }) => {
   const tabs = [
-    { id: 'policy' as TabType, label: 'My Policy', icon: Shield },
+    { id: 'policy' as TabType, label: 'Policy', icon: Shield },
     { id: 'quote' as TabType, label: 'Quote', icon: PlusCircle },
+    { id: 'coi' as TabType, label: 'COI', icon: Sparkles },
+    { id: 'covered' as TabType, label: 'Covered?', icon: MessageCircle },
     { id: 'services' as TabType, label: 'Services', icon: FileText },
-    { id: 'chat' as TabType, label: 'Policy Chat', icon: MessageCircle },
     { id: 'profile' as TabType, label: 'Profile', icon: User },
 
   ];
@@ -27,7 +28,11 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange }) => {
             onClick={() => onTabChange(tab.id)}
             className={`relative flex flex-col items-center justify-center flex-1 h-full transition-colors ${
               activeTab === tab.id
-                ? 'text-[#F7941D]'
+                ? tab.id === 'coi'
+                  ? 'text-[#F7941D]'
+                  : tab.id === 'covered'
+                    ? 'text-green-600'
+                    : 'text-[#1B3A5F]'
                 : 'text-gray-400 hover:text-gray-600'
             }`}
           >
@@ -36,7 +41,9 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange }) => {
               {tab.label}
             </span>
             {activeTab === tab.id && (
-              <div className="absolute bottom-0 w-10 sm:w-12 h-1 bg-[#F7941D] rounded-t-full" />
+              <div className={`absolute bottom-0 w-10 sm:w-12 h-1 rounded-t-full ${
+                tab.id === 'coi' ? 'bg-[#F7941D]' : tab.id === 'covered' ? 'bg-green-500' : 'bg-[#1B3A5F]'
+              }`} />
             )}
           </button>
         ))}

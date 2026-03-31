@@ -121,26 +121,18 @@ const PolicyVault: React.FC<PolicyVaultProps> = ({
   const serviceActions = [
     {
       id: 'coi',
-      title: 'Request COI',
-      description: 'Get a Certificate of Insurance',
+      title: 'Instant COI',
+      description: 'Certificate workflow tab',
       icon: FileText,
-      color: 'bg-[#1B3A5F]',
+      color: 'bg-gradient-to-r from-[#F7941D] to-[#E07D0D]',
       onClick: onRequestCOI
     },
     {
-      id: 'claim',
-      title: 'File a Claim',
-      description: 'Report an incident or loss',
-      icon: AlertTriangle,
-      color: 'bg-[#F7941D]',
-      onClick: onFileClaim
-    },
-    {
-      id: 'chat',
-      title: 'Coverage Chat',
-      description: 'AI-powered support',
+      id: 'covered',
+      title: 'Am I Covered?',
+      description: 'Scenario-based coverage checks',
       icon: MessageCircle,
-      color: 'bg-green-500',
+      color: 'bg-gradient-to-r from-green-600 to-emerald-500',
       onClick: onCoverageChat
     }
   ];
@@ -275,7 +267,7 @@ const PolicyVault: React.FC<PolicyVaultProps> = ({
       {/* Service Actions */}
       <div className="space-y-3">
         <h2 className="text-lg font-semibold text-gray-800">Quick Actions</h2>
-        <div className="grid gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {serviceActions.map((action) => (
             <button
               key={action.id}
@@ -294,6 +286,20 @@ const PolicyVault: React.FC<PolicyVaultProps> = ({
           ))}
         </div>
       </div>
+
+      <button
+        onClick={onFileClaim}
+        className="w-full bg-white rounded-xl shadow-md p-4 flex items-center gap-4 hover:shadow-lg transition-all active:scale-[0.98]"
+      >
+        <div className="p-3 rounded-xl bg-[#F7941D]">
+          <AlertTriangle className="w-6 h-6 text-white" />
+        </div>
+        <div className="flex-1 text-left">
+          <h3 className="font-semibold text-gray-800">File a Claim</h3>
+          <p className="text-sm text-gray-500">Report an incident or loss</p>
+        </div>
+        <ChevronRight className="w-5 h-5 text-gray-400" />
+      </button>
 
       {/* Policy Details */}
       {policy && (
