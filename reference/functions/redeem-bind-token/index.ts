@@ -9,6 +9,21 @@ async function sha256HexUtf8(text: string): Promise<string> {
     .join("");
 }
 
+function errorToString(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (e && typeof e === "object" && "message" in e && (e as { message?: unknown }).message != null) {
+    return String((e as { message: unknown }).message);
+  }
+  if (e && typeof e === "object") {
+    try {
+      return JSON.stringify(e);
+    } catch {
+      return "[unserializable_error]";
+    }
+  }
+  return String(e);
+}
+
 Deno.serve(async (req) => {
   const cors = {
     "Access-Control-Allow-Origin": "*",
@@ -159,7 +174,7 @@ Deno.serve(async (req) => {
       headers: { ...cors, "Content-Type": "application/json" },
     });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
+    const msg = errorToString(e);
     return new Response(JSON.stringify({ ok: false, error: msg }), {
       status: 500,
       headers: { ...cors, "Content-Type": "application/json" },

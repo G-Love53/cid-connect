@@ -12,6 +12,16 @@ This flow is segment-agnostic (policy-based linkage), so run it against at least
 - Edge function deployed: `redeem-bind-token`
 - Famous secrets set: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
 
+## Troubleshooting (read this first)
+
+**`invalid_token` (404)** — Expected if you call validate with a raw string that has **no matching row** in `policy_bind_tokens`. The function hashes the raw token with SHA-256 and compares to `token_hash`. You must insert a row **before** testing, using the same raw token string in SQL as you send in JSON (`token` field).
+
+**`missing_service_config` (500)** — Edge Function secrets are missing or wrong names. Set **`SUPABASE_URL`** and **`SUPABASE_SERVICE_ROLE_KEY`** for the **same** Famous project where the table lives.
+
+**`500` with a JSON error body** — After redeploying the latest `index.js`, the `error` field should show the real PostgREST message (e.g. missing table, wrong schema). If you still see `"[object Object]"`, redeploy the function from repo `reference/functions/redeem-bind-token/index.js`.
+
+**Example:** validate body `{"action":"validate","token":"smoke-token-123","email":"you@example.com"}` only succeeds after you insert a row with `token_hash = encode(digest('smoke-token-123', 'sha256'), 'hex')` and `intended_email = 'you@example.com'` (case-insensitive match on email).
+
 ## 1) Create a test token row (SQL)
 
 ```sql
@@ -33,6 +43,10 @@ values (
   'smoke-test'
 );
 ```
+
+Use a **real** `policy_id` from `public.policies` (the all-zero UUID is only illustrative and may fail FKs or business checks). You can get one with `select id from public.policies limit 1;`.
+
+**Quick match for `token` + `email` in the Test Function UI:** if you send `{"action":"validate","token":"smoke-token-123","email":"gtjoneshome@gmail.com"}`, the inserted row must use `encode(digest('smoke-token-123', 'sha256'), 'hex')` and `intended_email` that matches that email (case-insensitive).
 
 ## 2) Validate token (frontend or invoke)
 
