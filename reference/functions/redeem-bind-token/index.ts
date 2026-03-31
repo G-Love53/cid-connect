@@ -1,17 +1,19 @@
 // Deno Edge Function
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sha256 } from "https://esm.sh/@noble/hashes@1.8.0/sha256.js";
+
+async function sha256HexUtf8(text: string): Promise<string> {
+  const bytes = new TextEncoder().encode(text);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
 
 Deno.serve(async (req) => {
   const cors = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   };
-
-  function sha256Hex(value: string): string {
-    const bytes = sha256(new TextEncoder().encode(value));
-    return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
-  }
 
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 
@@ -43,8 +45,8 @@ Deno.serve(async (req) => {
       });
     }
     const action = body.action ?? "validate";
-    const token = body.token?.trim();
-    const email = body.email?.trim().toLowerCase();
+    const token = body.token?.trim() ?? "";
+    const email = body.email?.trim().toLowerCase() ?? "";
 
     if (!token || !email) {
       return new Response(JSON.stringify({ ok: false, error: "token_and_email_required" }), {
@@ -53,7 +55,19 @@ Deno.serve(async (req) => {
       });
     }
 
-    const tokenHash = sha256Hex(token);
+    let tokenHash: string;
+    try {
+      tokenHash = await sha256HexUtf8(token);
+    } catch (cryptoErr) {
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: "crypto_subtle_unavailable",
+          detail: cryptoErr instanceof Error ? cryptoErr.message : String(cryptoErr),
+        }),
+        { status: 500, headers: { ...cors, "Content-Type": "application/json" } },
+      );
+    }
 
     const { data: tokenRow, error: tokenError } = await sb
       .from("policy_bind_tokens")
