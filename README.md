@@ -316,6 +316,8 @@ src/
 └── types/index.ts                  # TypeScript interfaces
 
 reference/
+├── docs/
+│   └── BIND_TOKEN_SMOKE_TEST.md
 ├── cid-pdf-api/
 │   └── coverage-inference-contract.md
 ├── functions/
