@@ -1,5 +1,4 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -22,7 +21,7 @@ async function sha256Hex(value: string): Promise<string> {
 // Required env (Supabase Edge Function runtime): SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY (see Deno.env.get below).
 // This file does not read database_URL, database_SERVICE_ROLE_KEY, or other ad-hoc aliases.
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 
   const url = Deno.env.get("SUPABASE_URL");
