@@ -23,6 +23,14 @@ function errorToString(e) {
   return String(e);
 }
 
+function envFirst(...keys) {
+  for (const k of keys) {
+    const v = Deno.env.get(k)?.trim();
+    if (v) return v;
+  }
+  return "";
+}
+
 Deno.serve(async (req) => {
   const cors = {
     "Access-Control-Allow-Origin": "*",
@@ -31,8 +39,8 @@ Deno.serve(async (req) => {
 
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 
-  const url = Deno.env.get("SUPABASE_URL");
-  const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const url = envFirst("SUPABASE_URL", "database_URL", "DATABASE_URL");
+  const serviceRole = envFirst("SUPABASE_SERVICE_ROLE_KEY", "database_SERVICE_ROLE_KEY");
   if (!url || !serviceRole) {
     return new Response(JSON.stringify({ ok: false, error: "missing_service_config" }), {
       status: 500,
