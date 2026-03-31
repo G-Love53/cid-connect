@@ -1,27 +1,17 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const cors = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-type ReqBody = {
-  action?: "validate" | "redeem";
-  token?: string;
-  email?: string;
-  user_id?: string;
-};
-
-async function sha256Hex(value: string): Promise<string> {
-  const bytes = new TextEncoder().encode(value);
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
-  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-// Required env (Supabase Edge Function runtime): SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY (see Deno.env.get below).
-// This file does not read database_URL, database_SERVICE_ROLE_KEY, or other ad-hoc aliases.
-
 Deno.serve(async (req) => {
+  const cors = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  };
+
+  async function sha256Hex(value: string): Promise<string> {
+    const bytes = new TextEncoder().encode(value);
+    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
+  }
+
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 
   const url = Deno.env.get("SUPABASE_URL");
@@ -36,7 +26,12 @@ Deno.serve(async (req) => {
   const sb = createClient(url, serviceRole);
 
   try {
-    const body = (await req.json()) as ReqBody;
+    const body = (await req.json()) as {
+      action?: "validate" | "redeem";
+      token?: string;
+      email?: string;
+      user_id?: string;
+    };
     const action = body.action ?? "validate";
     const token = body.token?.trim();
     const email = body.email?.trim().toLowerCase();
