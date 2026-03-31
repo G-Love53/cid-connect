@@ -9,29 +9,6 @@ async function sha256HexUtf8(text: string): Promise<string> {
     .join("");
 }
 
-/** Supabase/PostgREST often throws plain objects, not Error — avoid "[object Object]". */
-function errorToString(e: unknown): string {
-  if (e instanceof Error) return e.message;
-  if (e && typeof e === "object") {
-    const o = e as Record<string, unknown>;
-    if (o.message != null) return String(o.message);
-    try {
-      return JSON.stringify(e);
-    } catch {
-      return "[unserializable_error]";
-    }
-  }
-  return String(e);
-}
-
-function envFirst(...keys: string[]): string {
-  for (const k of keys) {
-    const v = Deno.env.get(k)?.trim();
-    if (v) return v;
-  }
-  return "";
-}
-
 Deno.serve(async (req) => {
   const cors = {
     "Access-Control-Allow-Origin": "*",
@@ -40,8 +17,8 @@ Deno.serve(async (req) => {
 
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 
-  const url = envFirst("SUPABASE_URL", "database_URL", "DATABASE_URL");
-  const serviceRole = envFirst("SUPABASE_SERVICE_ROLE_KEY", "database_SERVICE_ROLE_KEY");
+  const url = Deno.env.get("SUPABASE_URL");
+  const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !serviceRole) {
     return new Response(JSON.stringify({ ok: false, error: "missing_service_config" }), {
       status: 500,
@@ -67,9 +44,9 @@ Deno.serve(async (req) => {
         headers: { ...cors, "Content-Type": "application/json" },
       });
     }
-    const action = body.action ?? "validate";
-    const token = body.token?.trim() ?? "";
-    const email = body.email?.trim().toLowerCase() ?? "";
+    const action = body.action != null ? body.action : "validate";
+    const token = body.token ? String(body.token).trim() : "";
+    const email = body.email ? String(body.email).trim().toLowerCase() : "";
 
     if (!token || !email) {
       return new Response(JSON.stringify({ ok: false, error: "token_and_email_required" }), {
@@ -133,7 +110,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const userId = body.user_id?.trim();
+    const userId = body.user_id ? String(body.user_id).trim() : "";
     if (!userId) {
       return new Response(JSON.stringify({ ok: false, error: "user_id_required_for_redeem" }), {
         status: 400,
@@ -182,7 +159,8 @@ Deno.serve(async (req) => {
       headers: { ...cors, "Content-Type": "application/json" },
     });
   } catch (e) {
-    return new Response(JSON.stringify({ ok: false, error: errorToString(e) }), {
+    const msg = e instanceof Error ? e.message : String(e);
+    return new Response(JSON.stringify({ ok: false, error: msg }), {
       status: 500,
       headers: { ...cors, "Content-Type": "application/json" },
     });
