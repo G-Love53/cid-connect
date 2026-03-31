@@ -134,7 +134,9 @@ const BindTokensTab: React.FC<BindTokensTabProps> = ({ onPendingCountChange }) =
                     <div className="text-xs text-gray-500">created: {new Date(row.created_at).toLocaleString()}</div>
                     <div className="text-xs text-gray-500">used: {row.used_at ? new Date(row.used_at).toLocaleString() : '—'}</div>
                   </div>
-                  <Badge variant={st === 'pending' ? 'default' : 'outline'}>{st}</Badge>
+                  <Badge variant={st === 'pending' ? 'default' : 'outline'}>
+                    {st === 'redeemed' ? 'Used' : st}
+                  </Badge>
                   {st === 'pending' && (
                     <Button size="sm" variant="outline" onClick={() => onRevoke(row.id)}>Revoke</Button>
                   )}
