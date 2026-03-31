@@ -1,7 +1,7 @@
 // Deno Edge Function
-Deno.serve(async (req) => {
-  const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+Deno.serve(async (req) => {
   const cors = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
