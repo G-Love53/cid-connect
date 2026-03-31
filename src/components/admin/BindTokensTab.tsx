@@ -117,7 +117,7 @@ const BindTokensTab: React.FC<BindTokensTabProps> = ({ onPendingCountChange }) =
               <SelectContent>
                 <SelectItem value="all">All</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="redeemed">Redeemed</SelectItem>
+                <SelectItem value="redeemed">Used</SelectItem>
                 <SelectItem value="expired">Expired</SelectItem>
               </SelectContent>
             </Select>
@@ -132,7 +132,7 @@ const BindTokensTab: React.FC<BindTokensTabProps> = ({ onPendingCountChange }) =
                     <div className="font-medium">{row.intended_email}</div>
                     <div className="text-xs text-gray-500 break-all">policy: {row.policy_id || 'n/a'}</div>
                     <div className="text-xs text-gray-500">created: {new Date(row.created_at).toLocaleString()}</div>
-                    <div className="text-xs text-gray-500">redeemed: {row.used_at ? new Date(row.used_at).toLocaleString() : '—'}</div>
+                    <div className="text-xs text-gray-500">used: {row.used_at ? new Date(row.used_at).toLocaleString() : '—'}</div>
                   </div>
                   <Badge variant={st === 'pending' ? 'default' : 'outline'}>{st}</Badge>
                   {st === 'pending' && (
