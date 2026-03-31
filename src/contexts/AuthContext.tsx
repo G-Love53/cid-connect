@@ -6,7 +6,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: string | null }>;
+  signUp: (email: string, password: string, fullName: string, bindToken?: string | null) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
 }
@@ -88,7 +88,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return { error: error?.message || null };
   };
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signUp = async (email: string, password: string, fullName: string, bindToken?: string | null) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -105,6 +105,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         full_name: fullName,
         role: 'agent'
       });
+
+      if (bindToken) {
+        const { data: redeemData, error: redeemError } = await supabase.functions.invoke('redeem-bind-token', {
+          body: {
+            action: 'redeem',
+            token: bindToken,
+            email,
+            user_id: data.user.id,
+          },
+        });
+        if (redeemError || !redeemData?.ok) {
+          return { error: redeemError?.message || redeemData?.error || 'Account created, but bind token redeem failed.' };
+        }
+      }
     }
 
     return { error: error?.message || null };

@@ -321,11 +321,14 @@ reference/
 ├── functions/
 │   └── coverage-chat/
 │       └── index.ts
+│   └── redeem-bind-token/
+│       └── index.ts
 ├── cid-connect-famous/
 │   └── E2E_SMOKE_TEST.md           # End-to-end smoke test script
 └── migrations/
     ├── 001_setup_pg_cron_renewal_check.sql
-    └── 002_chat_model_audit_log.sql
+    ├── 002_chat_model_audit_log.sql
+    └── 003_policy_bind_tokens.sql
 ```
 
 ## Edge Functions
@@ -334,6 +337,7 @@ reference/
 |----------|---------|
 | `analyze-quote` | AI quote analysis via Gemini |
 | `coverage-chat` | AI coverage chat with policy context |
+| `redeem-bind-token` | Validates/redeems single-use bind token and links policy to new user |
 | `send-notification` | Email notifications via Resend with template support + **dedup rate limiting** |
 | `check-renewals` | Daily renewal reminder emails (pg_cron scheduled) |
 | `receive-external-webhook` | Inbound webhook ingestion + **rule execution engine** (log_audit, send_notification, create_claim) |
@@ -360,6 +364,7 @@ reference/
 | `app_settings` | Key-value store for cron toggles, config flags |
 | `email_templates` | Customizable email templates per entity_type/status |
 | `renewal_notifications` | Renewal email send history |
+| `policy_bind_tokens` | Signed bind-link tokens for onboarding and policy linkage |
 
 ## Secrets
 

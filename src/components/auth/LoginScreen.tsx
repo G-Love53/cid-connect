@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 interface LoginScreenProps {
   onSuccess: () => void;
@@ -17,6 +18,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [bindToken] = useState(() => new URLSearchParams(window.location.search).get('bind_token'));
+  const [prefilledEmail] = useState(() => new URLSearchParams(window.location.search).get('email'));
+
+  React.useEffect(() => {
+    if (prefilledEmail && !email) setEmail(prefilledEmail);
+  }, [prefilledEmail, email]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,11 +52,24 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
           setLoading(false);
           return;
         }
-        const { error } = await signUp(email, password, fullName);
+        if (bindToken) {
+          const { data, error: validateError } = await supabase.functions.invoke('redeem-bind-token', {
+            body: { action: 'validate', token: bindToken, email },
+          });
+          if (validateError || !data?.ok) {
+            setError(validateError?.message || data?.error || 'Invalid or expired bind link.');
+            setLoading(false);
+            return;
+          }
+        }
+
+        const { error } = await signUp(email, password, fullName, bindToken);
         if (error) {
           setError(error);
         } else {
-          setMessage('Account created! Please check your email to verify your account.');
+          setMessage(bindToken
+            ? 'Account created and policy access linked. Please verify your email.'
+            : 'Account created! Please check your email to verify your account.');
         }
       }
     } catch (err) {
@@ -92,6 +112,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
             <h2 className="text-xl font-semibold text-gray-800 mb-6 text-center">
               {showForgotPassword ? 'Reset Password' : isLogin ? 'Welcome Back' : 'Create Account'}
             </h2>
+
+            {bindToken && !showForgotPassword && !isLogin && (
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 text-sm">
+                You are using a policy bind link. Create your account with the same email used for binding.
+              </div>
+            )}
 
             {error && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
