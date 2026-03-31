@@ -67,3 +67,16 @@ from public.policy_bind_tokens
 order by created_at desc
 limit 20;
 ```
+
+## 7) Verify onboarding one-time behavior
+
+```sql
+select id, email, full_name, onboarding_completed
+from public.profiles
+where email = 'customer@example.com';
+```
+
+Expected:
+
+- First successful bind onboarding sets `onboarding_completed = true`.
+- Subsequent logins skip post-bind onboarding and go straight to app.

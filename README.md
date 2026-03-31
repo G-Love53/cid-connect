@@ -295,6 +295,7 @@ src/
 ├── components/
 │   ├── admin/                      # Admin dashboard tabs
 │   │   ├── AdminDashboard.tsx      # Main admin container with tabs
+│   │   ├── BindTokensTab.tsx       # Issue/revoke bind-token invite links
 │   │   ├── AdminOverviewLive.tsx   # Real-time overview with alerts banner
 │   │   ├── AdminRenewalAlerts.tsx  # Renewal management + cron setup
 │   │   ├── AdminAlertsBanner.tsx   # Critical alerts (expiring policies, stale claims)
@@ -309,6 +310,7 @@ src/
 │   ├── services/                   # Claims, COI, Chat, Billing, Carrier Detail
 │   ├── coverage/                   # Dedicated "Am I Covered?" tab
 │   ├── coi/                        # Dedicated Instant COI tab
+│   ├── onboarding/                 # Post-bind onboarding flow
 │   ├── policy/                     # Policy vault & timeline
 │   └── navigation/                 # Header & bottom nav
 ├── contexts/                       # Auth & App context providers
@@ -330,7 +332,8 @@ reference/
 └── migrations/
     ├── 001_setup_pg_cron_renewal_check.sql
     ├── 002_chat_model_audit_log.sql
-    └── 003_policy_bind_tokens.sql
+    ├── 003_policy_bind_tokens.sql
+    └── 004_profiles_onboarding_completed.sql
 ```
 
 ## Edge Functions
@@ -367,6 +370,13 @@ reference/
 | `email_templates` | Customizable email templates per entity_type/status |
 | `renewal_notifications` | Renewal email send history |
 | `policy_bind_tokens` | Signed bind-link tokens for onboarding and policy linkage |
+
+## Bind Token Onboarding
+
+- Invite links use format: `/?bind_token=<raw_token>&email=<intended_email>`.
+- Admin issues/revokes tokens from **Admin Dashboard -> Bind Tokens**.
+- Token flow: validate -> redeem -> link `policies.user_id` -> one-time onboarding.
+- New users are shown a guided post-bind onboarding screen until `profiles.onboarding_completed = true`.
 
 ## Secrets
 
