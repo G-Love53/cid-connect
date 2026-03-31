@@ -731,6 +731,122 @@ export async function getAllPolicies(): Promise<Policy[]> {
     return data as Policy[];
 }
 
+export interface BindTokenRow {
+  id: string;
+  intended_email: string;
+  policy_id: string | null;
+  quote_id: string | null;
+  segment: string | null;
+  expires_at: string;
+  used_at: string | null;
+  used_by: string | null;
+  created_at: string;
+}
+
+export interface BindTokenListResult {
+  rows: BindTokenRow[];
+  total: number;
+}
+
+export async function getBindTokens(opts?: {
+  status?: 'all' | 'pending' | 'redeemed' | 'expired';
+  search?: string;
+  limit?: number;
+}): Promise<BindTokenListResult> {
+  const limit = opts?.limit ?? 200;
+  let query = supabase
+    .from('policy_bind_tokens')
+    .select('id,intended_email,policy_id,quote_id,segment,expires_at,used_at,used_by,created_at', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (opts?.search?.trim()) {
+    query = query.ilike('intended_email', `%${opts.search.trim()}%`);
+  }
+
+  const { data, error, count } = await query;
+  if (error) {
+    console.error('Error fetching bind tokens:', error);
+    return { rows: [], total: 0 };
+  }
+
+  let rows = (data || []) as BindTokenRow[];
+  if (opts?.status && opts.status !== 'all') {
+    const now = Date.now();
+    rows = rows.filter((row) => {
+      const expired = new Date(row.expires_at).getTime() <= now;
+      const redeemed = !!row.used_at;
+      if (opts.status === 'redeemed') return redeemed;
+      if (opts.status === 'expired') return !redeemed && expired;
+      if (opts.status === 'pending') return !redeemed && !expired;
+      return true;
+    });
+  }
+  return { rows, total: count ?? rows.length };
+}
+
+export async function createBindTokenRecord(params: {
+  tokenHash: string;
+  intendedEmail: string;
+  policyId: string;
+  expiresAtIso: string;
+  segment?: string | null;
+}): Promise<{ ok: boolean; error?: string }> {
+  const { error } = await supabase
+    .from('policy_bind_tokens')
+    .insert({
+      token_hash: params.tokenHash,
+      intended_email: params.intendedEmail.toLowerCase(),
+      policy_id: params.policyId,
+      expires_at: params.expiresAtIso,
+      segment: params.segment ?? null,
+      created_by: 'admin-ui',
+    });
+  if (error) {
+    console.error('Error creating bind token:', error);
+    return { ok: false, error: error.message };
+  }
+  return { ok: true };
+}
+
+export async function revokeBindToken(tokenId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from('policy_bind_tokens')
+    .delete()
+    .eq('id', tokenId)
+    .is('used_at', null);
+  if (error) {
+    console.error('Error revoking bind token:', error);
+    return false;
+  }
+  return true;
+}
+
+export interface BindTokenResult {
+  ok: boolean;
+  error?: 'email_mismatch' | 'token_expired' | 'token_already_used' | 'token_not_found' | string;
+  policy_id?: string | null;
+  segment?: string | null;
+}
+
+export async function validateBindToken(token: string, email: string): Promise<BindTokenResult> {
+  const { data, error } = await supabase.functions.invoke('redeem-bind-token', {
+    body: { action: 'validate', token, email },
+  });
+  if (error) return { ok: false, error: error.message };
+  const mapped = data?.error === 'invalid_token' ? 'token_not_found' : data?.error;
+  return { ok: Boolean(data?.ok), error: mapped, policy_id: data?.policy_id, segment: data?.segment };
+}
+
+export async function redeemBindToken(token: string, email: string, userId: string): Promise<BindTokenResult> {
+  const { data, error } = await supabase.functions.invoke('redeem-bind-token', {
+    body: { action: 'redeem', token, email, user_id: userId },
+  });
+  if (error) return { ok: false, error: error.message };
+  const mapped = data?.error === 'invalid_token' ? 'token_not_found' : data?.error;
+  return { ok: Boolean(data?.ok), error: mapped, policy_id: data?.policy_id, segment: data?.segment };
+}
+
 /**
  * Get all claims (admin only)
  */

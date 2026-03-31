@@ -73,6 +73,7 @@ import AdminClaimsCharts from './AdminClaimsCharts';
 import WebhookLogTab from './WebhookLogTab';
 import WebhookRulesTab from './WebhookRulesTab';
 import AdminClaimAssignments from './AdminClaimAssignments';
+import BindTokensTab from './BindTokensTab';
 
 
 
@@ -91,6 +92,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
   const [coiRequests, setCoiRequests] = useState<COIRequest[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const [pendingBindTokens, setPendingBindTokens] = useState(0);
   
   // Filters
   const [policySearch, setPolicySearch] = useState('');
@@ -718,6 +720,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
           <TabsTrigger value="webhook-rules" className="flex items-center gap-1 text-xs sm:text-sm flex-1">
             <Activity className="w-4 h-4" />
             <span className="hidden sm:inline">Rules</span>
+          </TabsTrigger>
+          <TabsTrigger value="bind-tokens" className="flex items-center gap-1 text-xs sm:text-sm flex-1">
+            <LinkIcon className="w-4 h-4" />
+            <span className="hidden sm:inline">Bind Tokens</span>
+            {pendingBindTokens > 0 && (
+              <Badge className="bg-orange-100 text-orange-700 border-0">{pendingBindTokens}</Badge>
+            )}
           </TabsTrigger>
         </TabsList>
 
@@ -1578,6 +1587,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
         {/* Webhook Rules Tab */}
         <TabsContent value="webhook-rules" className="space-y-4">
           <WebhookRulesTab />
+        </TabsContent>
+
+        {/* Bind Tokens Tab */}
+        <TabsContent value="bind-tokens" className="space-y-4">
+          <BindTokensTab onPendingCountChange={setPendingBindTokens} />
         </TabsContent>
       </Tabs>
     </div>

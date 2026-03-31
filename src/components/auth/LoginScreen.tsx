@@ -5,9 +5,10 @@ import { supabase } from '@/lib/supabase';
 
 interface LoginScreenProps {
   onSuccess: () => void;
+  prefillEmail?: string;
 }
 
-const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
+const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, prefillEmail }) => {
   const { signIn, signUp, resetPassword } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -19,7 +20,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [bindToken] = useState(() => new URLSearchParams(window.location.search).get('bind_token'));
-  const [prefilledEmail] = useState(() => new URLSearchParams(window.location.search).get('email'));
+  const [prefilledEmail] = useState(() => prefillEmail || new URLSearchParams(window.location.search).get('email'));
 
   React.useEffect(() => {
     if (prefilledEmail && !email) setEmail(prefilledEmail);
@@ -150,6 +151,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                {prefilledEmail && (
+                  <p className="text-xs text-blue-600 mb-1">Pre-filled from your invite link</p>
+                )}
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
