@@ -74,7 +74,7 @@ User-facing labels for redeemed tokens use **Used**; internal status values may 
 
 Paste this as the first message when resuming work:
 
-1. **Baseline SHA:** `700f313` (pull `main` and confirm `git rev-parse HEAD` matches before changing code).
+1. **Baseline:** pull latest `main` — closeout tip was `2ab0f65` (confirm `git rev-parse HEAD` is this commit or newer before changing code).
 2. **Source of truth:** GitHub — no dashboard-only final state. Famous supplies full patch handoffs per **Required Patch Handoff Format** above; Cursor applies, verifies, commits, pushes.
 3. **Scope:** Feature coding for bind-token naming / admin UI cleanup is **closed** unless you open a new ticket with **one** concrete objective (single sentence).
 
