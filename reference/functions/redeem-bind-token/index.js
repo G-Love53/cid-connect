@@ -1,3 +1,14 @@
+/**
+ * Deno Edge Function: redeem-bind-token
+ *
+ * Secrets (Famous / Supabase): SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+ *
+ * Gateway: "Verify JWT" must be OFF for anonymous curl smoke tests (dashboard toggle).
+ * This file cannot disable JWT — only the platform config can.
+ *
+ * Smoke (after JWT off): curl -H "apikey: $ANON" -H "Content-Type: application/json"
+ *   -d '{"action":"validate","token":"...","email":"..."}'
+ */
 // Deno Edge Function
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -27,6 +38,7 @@ Deno.serve(async (req) => {
   const cors = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
   };
 
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
