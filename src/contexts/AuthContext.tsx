@@ -43,95 +43,138 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   useEffect(() => {
-    // Check active sessions
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        // Fetch role from profiles table
-        const role = await fetchUserRole(session.user.id);
-        
-        setUser({
-          id: session.user.id,
-          email: session.user.email || '',
-          full_name: session.user.user_metadata?.full_name,
-          role: role
-        });
-      }
-      setLoading(false);
+    let cancelled = false;
+    const SAFETY_MS = 10_000;
+    const safety = window.setTimeout(() => {
+      if (!cancelled) setLoading(false);
+    }, SAFETY_MS);
+
+    const endInitialLoad = () => {
+      window.clearTimeout(safety);
+      if (!cancelled) setLoading(false);
     };
 
-    checkSession();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        // Fetch role from profiles table
-        const role = await fetchUserRole(session.user.id);
-        
-        setUser({
-          id: session.user.id,
-          email: session.user.email || '',
-          full_name: session.user.user_metadata?.full_name,
-          role: role
-        });
-      } else {
-        setUser(null);
+    const run = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (cancelled) return;
+        if (session?.user) {
+          const role = await fetchUserRole(session.user.id);
+          if (cancelled) return;
+          setUser({
+            id: session.user.id,
+            email: session.user.email || '',
+            full_name: session.user.user_metadata?.full_name,
+            role,
+          });
+        }
+      } catch (err) {
+        console.error('getSession failed:', err);
+      } finally {
+        endInitialLoad();
       }
-      setLoading(false);
+    };
+
+    void run();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      try {
+        if (cancelled) return;
+        if (session?.user) {
+          const role = await fetchUserRole(session.user.id);
+          if (cancelled) return;
+          setUser({
+            id: session.user.id,
+            email: session.user.email || '',
+            full_name: session.user.user_metadata?.full_name,
+            role,
+          });
+        } else {
+          setUser(null);
+        }
+      } catch (err) {
+        console.error('onAuthStateChange failed:', err);
+      } finally {
+        endInitialLoad();
+      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      window.clearTimeout(safety);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error?.message || null };
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      return { error: error?.message || null };
+    } catch (err) {
+      console.error('signIn failed:', err);
+      return { error: err instanceof Error ? err.message : 'Sign in failed' };
+    }
   };
 
   const signUp = async (email: string, password: string, fullName: string, bindToken?: string | null) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName, role: 'agent' }
-      }
-    });
-
-    if (!error && data.user) {
-      // Create user profile in profiles table
-      await supabase.from('profiles').insert({
-        id: data.user.id,
+    try {
+      const { data, error } = await supabase.auth.signUp({
         email,
-        full_name: fullName,
-        role: 'agent'
+        password,
+        options: {
+          data: { full_name: fullName, role: 'agent' },
+        },
       });
 
-      if (bindToken) {
-        const { data: redeemData, error: redeemError } = await supabase.functions.invoke('redeem-bind-token', {
-          body: {
-            action: 'redeem',
-            token: bindToken,
-            email,
-            user_id: data.user.id,
-          },
+      if (!error && data.user) {
+        await supabase.from('profiles').insert({
+          id: data.user.id,
+          email,
+          full_name: fullName,
+          role: 'agent',
         });
-        if (redeemError || !redeemData?.ok) {
-          return { error: redeemError?.message || redeemData?.error || 'Account created, but bind token redeem failed.' };
+
+        if (bindToken) {
+          const { data: redeemData, error: redeemError } = await supabase.functions.invoke('redeem-bind-token', {
+            body: {
+              action: 'redeem',
+              token: bindToken,
+              email,
+              user_id: data.user.id,
+            },
+          });
+          if (redeemError || !redeemData?.ok) {
+            return {
+              error: redeemError?.message || (redeemData as { error?: string })?.error || 'Account created, but bind token redeem failed.',
+            };
+          }
         }
       }
-    }
 
-    return { error: error?.message || null };
+      return { error: error?.message || null };
+    } catch (err) {
+      console.error('signUp failed:', err);
+      return { error: err instanceof Error ? err.message : 'Sign up failed' };
+    }
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+    } catch (err) {
+      console.error('signOut failed:', err);
+    }
   };
 
   const resetPassword = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
-    return { error: error?.message || null };
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      return { error: error?.message || null };
+    } catch (err) {
+      console.error('resetPassword failed:', err);
+      return { error: err instanceof Error ? err.message : 'Reset failed' };
+    }
   };
 
   return (
