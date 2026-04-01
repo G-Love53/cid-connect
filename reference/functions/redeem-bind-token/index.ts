@@ -56,7 +56,15 @@ Deno.serve(async (req) => {
     });
   }
 
-  const sb = createClient(url, serviceRole);
+  const sb = createClient(url, serviceRole, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: {
+      headers: {
+        Authorization: `Bearer ${serviceRole}`,
+        apikey: serviceRole,
+      },
+    },
+  });
 
   try {
     let body: {
