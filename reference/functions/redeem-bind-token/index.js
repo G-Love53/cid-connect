@@ -1,7 +1,8 @@
 /**
  * Deno Edge Function: redeem-bind-token
  *
- * Secrets (Famous / Supabase): SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+ * Secrets: SUPABASE_URL + service role as SUPABASE_SERVICE_ROLE_KEY (or SERVICE_ROLE_KEY).
+ * Must be the service_role JWT from API settings — not the anon key.
  *
  * Gateway: "Verify JWT" must be OFF for anonymous curl smoke tests (dashboard toggle).
  * This file cannot disable JWT — only the platform config can.
@@ -43,8 +44,16 @@ Deno.serve(async (req) => {
 
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 
-  const url = Deno.env.get("SUPABASE_URL");
-  const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  function envTrim(name) {
+    const v = Deno.env.get(name);
+    return typeof v === "string" ? v.trim() : "";
+  }
+
+  const url = envTrim("SUPABASE_URL");
+  const serviceRole =
+    envTrim("SUPABASE_SERVICE_ROLE_KEY") ||
+    envTrim("SERVICE_ROLE_KEY") ||
+    envTrim("SUPABASE_SERVICE_KEY");
   if (!url || !serviceRole) {
     return new Response(JSON.stringify({ ok: false, error: "missing_service_config" }), {
       status: 500,

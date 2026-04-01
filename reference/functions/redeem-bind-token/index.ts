@@ -39,8 +39,16 @@ Deno.serve(async (req) => {
 
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 
-  const url = Deno.env.get("SUPABASE_URL");
-  const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  function envTrim(name: string): string {
+    const v = Deno.env.get(name);
+    return typeof v === "string" ? v.trim() : "";
+  }
+
+  const url = envTrim("SUPABASE_URL");
+  const serviceRole =
+    envTrim("SUPABASE_SERVICE_ROLE_KEY") ||
+    envTrim("SERVICE_ROLE_KEY") ||
+    envTrim("SUPABASE_SERVICE_KEY");
   if (!url || !serviceRole) {
     return new Response(JSON.stringify({ ok: false, error: "missing_service_config" }), {
       status: 500,
