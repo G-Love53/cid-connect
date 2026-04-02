@@ -44,44 +44,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     let cancelled = false;
-    const SAFETY_MS = 10_000;
+    const SAFETY_MS = 12_000;
+    const ROLE_TIMEOUT_MS = 5_000;
+
     const safety = window.setTimeout(() => {
       if (!cancelled) setLoading(false);
     }, SAFETY_MS);
 
-    const endInitialLoad = () => {
-      window.clearTimeout(safety);
-      if (!cancelled) setLoading(false);
+    const loadRoleWithTimeout = async (userId: string): Promise<string> => {
+      return Promise.race([
+        fetchUserRole(userId),
+        new Promise<string>((resolve) => {
+          window.setTimeout(() => resolve('agent'), ROLE_TIMEOUT_MS);
+        }),
+      ]);
     };
 
-    const run = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (cancelled) return;
-        if (session?.user) {
-          const role = await fetchUserRole(session.user.id);
-          if (cancelled) return;
-          setUser({
-            id: session.user.id,
-            email: session.user.email || '',
-            full_name: session.user.user_metadata?.full_name,
-            role,
-          });
-        }
-      } catch (err) {
-        console.error('getSession failed:', err);
-      } finally {
-        endInitialLoad();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (cancelled) return;
+      // Silent refresh — avoid extra profiles round-trip; still end loading if we were waiting
+      if (event === 'TOKEN_REFRESHED') {
+        window.clearTimeout(safety);
+        if (!cancelled) setLoading(false);
+        return;
       }
-    };
 
-    void run();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       try {
-        if (cancelled) return;
         if (session?.user) {
-          const role = await fetchUserRole(session.user.id);
+          const role = await loadRoleWithTimeout(session.user.id);
           if (cancelled) return;
           setUser({
             id: session.user.id,
@@ -94,8 +84,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       } catch (err) {
         console.error('onAuthStateChange failed:', err);
+        setUser(null);
       } finally {
-        endInitialLoad();
+        window.clearTimeout(safety);
+        if (!cancelled) setLoading(false);
       }
     });
 

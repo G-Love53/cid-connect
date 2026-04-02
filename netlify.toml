@@ -5,18 +5,7 @@
 [build.environment]
 NODE_VERSION = "20"
 
-# Hashed Vite assets can cache forever; HTML entry must revalidate so deploys don’t
-# pair stale index with missing JS (white screen / long hangs after Back).
-[[headers]]
-  for = "/assets/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-[[headers]]
-  for = "/*"
-  [headers.values]
-    Cache-Control = "public, max-age=0, must-revalidate"
-
+# Fine-grained Cache-Control lives in public/_headers (copied to dist).
 # SPA: HTML routes only — do not override real files (assets/*.js, etc.)
 [[redirects]]
   from = "/*"
