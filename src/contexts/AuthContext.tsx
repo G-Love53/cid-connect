@@ -106,7 +106,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, []);
 
-  const SIGN_IN_TIMEOUT_MS = 30_000;
+  const SIGN_IN_TIMEOUT_MS = 60_000;
 
   const signIn = async (email: string, password: string) => {
     try {

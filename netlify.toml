@@ -3,7 +3,7 @@
   publish = "dist"
 
 [build.environment]
-  NODE_VERSION = "20"
+NODE_VERSION = "20"
 
 # SPA: HTML routes only — do not override real files (assets/*.js, etc.)
 [[redirects]]
