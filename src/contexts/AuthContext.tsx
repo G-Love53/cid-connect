@@ -106,9 +106,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, []);
 
+  const SIGN_IN_TIMEOUT_MS = 30_000;
+
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const result = await Promise.race([
+        supabase.auth.signInWithPassword({ email, password }),
+        new Promise<never>((_, reject) =>
+          setTimeout(
+            () => reject(new Error('Sign in timed out. Check network, VPN, or that VITE_SUPABASE_URL matches your project.')),
+            SIGN_IN_TIMEOUT_MS,
+          ),
+        ),
+      ]);
+      const { error } = result;
       return { error: error?.message || null };
     } catch (err) {
       console.error('signIn failed:', err);

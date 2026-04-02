@@ -50,7 +50,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, prefillEmail }) =>
       } else {
         if (!fullName.trim()) {
           setError('Please enter your full name');
-          setLoading(false);
           return;
         }
         if (bindToken) {
@@ -59,7 +58,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, prefillEmail }) =>
           });
           if (validateError || !data?.ok) {
             setError(validateError?.message || data?.error || 'Invalid or expired bind link.');
-            setLoading(false);
             return;
           }
         }
@@ -75,9 +73,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, prefillEmail }) =>
       }
     } catch (err) {
       setError('An unexpected error occurred');
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
