@@ -4,7 +4,7 @@ import { Segment, QuoteAnalysisResult, Policy } from '@/types';
 import { bindQuote, getQuoteDetails, notifyBindSuccess } from '@/api';
 import SegmentSelector from './SegmentSelector';
 import QuoteResults from './QuoteResults';
-import { Loader2, Sparkles, AlertTriangle, ArrowRight, Shield, Mail } from 'lucide-react';
+import { Loader2, Sparkles, AlertTriangle, ArrowRight, Shield } from 'lucide-react';
 
 interface QuoteScreenProps {
   quoteIdFromUrl?: string; // Optional: for loading a specific quote from URL
@@ -13,7 +13,6 @@ interface QuoteScreenProps {
 
 const QuoteScreen: React.FC<QuoteScreenProps> = ({ quoteIdFromUrl, onBindSuccess }) => {
   const { user } = useAuth();
-  const [selectedSegment, setSelectedSegment] = useState<Segment | null>(null);
   const [binding, setBinding] = useState(false);
   const [result, setResult] = useState<QuoteAnalysisResult | null>(null);
   const [error, setError] = useState('');
@@ -52,23 +51,14 @@ const QuoteScreen: React.FC<QuoteScreenProps> = ({ quoteIdFromUrl, onBindSuccess
     loadQuoteFromUrl();
   }, [quoteIdFromUrl]);
 
-  const handleEmailQuoteRequest = () => {
-    if (!selectedSegment) {
-      setError('Please select an insurance segment');
-      return;
-    }
-    const email = selectedSegment.description?.trim();
-    if (!email || !email.includes('@')) {
-      setError('This segment is missing a quote email. Please contact support.');
+  const handleSegmentQuoteRoute = (segment: Segment) => {
+    const raw = segment.quoteUrl?.trim();
+    if (!raw || !/^https:\/\//i.test(raw)) {
+      setError('This segment is missing a valid quote link. Update segment quote URLs in the app config.');
       return;
     }
     setError('');
-    const subject = encodeURIComponent('Commercial insurance quote request');
-    const parts = ['Hi,', '', "I'd like a quote for an additional business.", ''];
-    if (user?.email) parts.push(`App account: ${user.email}`, '');
-    parts.push('Business / operations details:', '', '');
-    const body = encodeURIComponent(parts.join('\n'));
-    window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+    window.location.assign(raw);
   };
 
   const handleBind = async (carrierId?: string | null, carrierName?: string) => {
@@ -110,7 +100,6 @@ const QuoteScreen: React.FC<QuoteScreenProps> = ({ quoteIdFromUrl, onBindSuccess
 
 
   const handleNewQuote = () => {
-    setSelectedSegment(null);
     setResult(null);
     setBindSuccess(false);
     setNewPolicy(null);
@@ -220,27 +209,14 @@ const QuoteScreen: React.FC<QuoteScreenProps> = ({ quoteIdFromUrl, onBindSuccess
       <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
         <div className="p-6 space-y-6">
           {/* Segment Selector */}
-          <SegmentSelector
-            selectedSegment={selectedSegment}
-            onSelect={setSelectedSegment}
-          />
+          <SegmentSelector onSelect={handleSegmentQuoteRoute} />
 
-          {/* Error Message */}
           {error && (
             <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600">
               <AlertTriangle className="w-5 h-5 flex-shrink-0" />
               <p className="text-sm">{error}</p>
             </div>
           )}
-
-          <button
-            type="button"
-            onClick={handleEmailQuoteRequest}
-            className="w-full bg-gradient-to-r from-[#F7941D] to-[#FDB54E] text-white py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 hover:from-[#E07D0D] hover:to-[#F7941D] transition-all shadow-lg hover:shadow-xl"
-          >
-            <Mail className="w-6 h-6" />
-            Email quote request
-          </button>
         </div>
       </div>
 

@@ -192,6 +192,8 @@ export interface Segment {
   name: string;
   icon: string;
   description: string;
+  /** Public quote intake URL (Connect Quote tab). */
+  quoteUrl?: string;
 }
 
 // Dynamic segments — no longer hardcoded.
