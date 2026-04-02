@@ -25,8 +25,8 @@ export const SEGMENT_QUOTE_ROUTES: SegmentQuoteRoute[] = [
   },
   {
     id: 'roofer',
-    name: 'Roofer Insurance Direct',
-    quoteUrl: 'https://www.rooferinsurancedirect.com/',
+    name: 'Roofing Contractor Insurance Direct',
+    quoteUrl: 'https://roofingcontractorinsurancedirect.com/',
     icon: 'home',
   },
 ];
