@@ -5,8 +5,9 @@
 [build.environment]
   NODE_VERSION = "20"
 
-# SPA: send all routes to index.html (React Router)
+# SPA: HTML routes only — do not override real files (assets/*.js, etc.)
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+  force = false
