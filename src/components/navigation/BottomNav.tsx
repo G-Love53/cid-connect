@@ -1,7 +1,7 @@
 import React from 'react';
-import { Shield, FileText, User, PlusCircle, Sparkles, MessageCircle } from 'lucide-react';
+import { Shield, User, PlusCircle, Sparkles, MessageCircle } from 'lucide-react';
 
-export type TabType = 'policy' | 'quote' | 'coi' | 'covered' | 'services' | 'profile';
+export type TabType = 'policy' | 'quote' | 'coi' | 'covered' | 'profile';
 
 interface BottomNavProps {
   activeTab: TabType;
@@ -14,7 +14,6 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange }) => {
     { id: 'quote' as TabType, label: 'Quote', icon: PlusCircle },
     { id: 'coi' as TabType, label: 'COI', icon: Sparkles },
     { id: 'covered' as TabType, label: 'Covered?', icon: MessageCircle },
-    { id: 'services' as TabType, label: 'Services', icon: FileText },
     { id: 'profile' as TabType, label: 'Profile', icon: User },
 
   ];

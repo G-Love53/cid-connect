@@ -75,7 +75,7 @@ const SegmentSelector: React.FC<SegmentSelectorProps> = ({ onSelect }) => {
   }, []);
 
   return (
-    <div className="w-full" ref={dropdownRef}>
+    <div className="w-full relative z-20" ref={dropdownRef}>
       <label className="block text-sm font-semibold text-gray-700 mb-2">
         Segment quote form
       </label>
@@ -93,7 +93,7 @@ const SegmentSelector: React.FC<SegmentSelectorProps> = ({ onSelect }) => {
         </button>
 
         {isOpen && (
-          <div className="absolute z-20 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden max-h-80 overflow-y-auto transition-all duration-200">
+          <div className="absolute z-[100] w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden max-h-80 overflow-y-auto transition-all duration-200">
             {segments.length === 0 ? (
               <div className="p-4 text-center text-gray-500 text-sm">No segments configured.</div>
             ) : (

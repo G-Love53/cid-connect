@@ -79,16 +79,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, prefillEmail }) =>
   };
 
   return (
-    <div 
-      className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
-      style={{
-        backgroundImage: `url(https://d64gsuwffb70l.cloudfront.net/6924df57ab7f6b1bb2f30643_1765657682017_a1227f18.png)`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center'
-      }}
-    >
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#1B3A5F]/90 via-[#1B3A5F]/80 to-[#2C5282]/90" />
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-br from-[#0a1f35] via-[#1B3A5F] to-[#152d4a]">
+      {/* Brand watermark (replaces third-party hero artwork / stray wording) */}
+      <div className="absolute inset-0 pointer-events-none select-none overflow-hidden flex items-center justify-center opacity-[0.07]">
+        <span className="text-[min(22vw,190px)] font-black text-white tracking-[0.15em]">CID</span>
+      </div>
+      <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-black/10 pointer-events-none" />
       
       {/* Login Card */}
       <div className="relative z-10 w-full max-w-md">

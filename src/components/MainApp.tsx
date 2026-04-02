@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Header from './navigation/Header';
 import BottomNav, { TabType } from './navigation/BottomNav';
 import PolicyVault from './policy/PolicyVault';
 import PolicyTimeline from './policy/PolicyTimeline';
 import QuoteScreen from './quote/QuoteScreen';
-import ServicesScreen from './services/ServicesScreen';
 import RequestCOI from './services/RequestCOI';
 import FileClaim from './services/FileClaim';
 import UpdatePaymentMethod from './services/UpdatePaymentMethod';
@@ -27,8 +26,6 @@ import QuoteHistory from './history/QuoteHistory';
 import QuoteComparison from './quote/QuoteComparison';
 import { Policy, Claim, Quote } from '@/types';
 
-import { useAuth } from '@/contexts/AuthContext';
-import { isStaffOrAdmin, getClaimById, ActivityItem } from '@/api';
 
 
 type ServiceView = 
@@ -56,11 +53,9 @@ type ServiceView =
 
 
 const MainApp: React.FC = () => {
-  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('policy');
   const [serviceView, setServiceView] = useState<ServiceView>('main');
   const [coiView, setCoiView] = useState<'hub' | 'form' | 'history'>('hub');
-  const [isAdmin, setIsAdmin] = useState(false);
   const [selectedClaim, setSelectedClaim] = useState<Claim | null>(null);
   const [selectedCarrierId, setSelectedCarrierId] = useState<string | null>(null);
   const [selectedQuoteId, setSelectedQuoteId] = useState<string | null>(null);
@@ -69,17 +64,6 @@ const MainApp: React.FC = () => {
 
 
 
-  // Check if user is admin/staff
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (user) {
-        const adminStatus = await isStaffOrAdmin(user.id);
-        setIsAdmin(adminStatus);
-      }
-    };
-    checkAdminStatus();
-  }, [user]);
-
   const handleRequestCOI = () => {
     setCoiView('form');
     setActiveTab('coi');
@@ -87,7 +71,6 @@ const MainApp: React.FC = () => {
 
   const handleFileClaim = () => {
     setServiceView('claim');
-    setActiveTab('services');
   };
 
   const handleCoverageChat = () => {
@@ -96,17 +79,14 @@ const MainApp: React.FC = () => {
 
   const handleUpdatePayment = () => {
     setServiceView('payment');
-    setActiveTab('services');
   };
 
   const handleDownloadDocuments = () => {
     setServiceView('documents');
-    setActiveTab('services');
   };
 
   const handleBilling = () => {
     setServiceView('billing');
-    setActiveTab('services');
   };
 
   const handleCoiHistory = () => {
@@ -116,51 +96,26 @@ const MainApp: React.FC = () => {
 
   const handleClaimHistory = () => {
     setServiceView('claim-history');
-    setActiveTab('services');
   };
 
 
   const handleRenewalReminders = () => {
     setServiceView('renewal-reminders');
-    setActiveTab('services');
   };
 
   const handleShopRenewal = () => {
     setServiceView('shop-renewal');
-    setActiveTab('services');
-  };
-
-  const handleAdminDashboard = () => {
-    setServiceView('admin');
-    setActiveTab('services');
-  };
-
-  const handleTrainAI = () => {
-    setServiceView('train-ai');
-    setActiveTab('services');
-  };
-
-  const handleQuoteHistory = () => {
-    setServiceView('quote-history');
-    setActiveTab('services');
   };
 
   const handleCompareQuotes = (quoteIds: string[]) => {
     setSelectedCompareIds(quoteIds);
     setServiceView('quote-compare');
-    setActiveTab('services');
   };
 
-
-  const handleBrowseCarriers = () => {
-    setServiceView('browse-carriers');
-    setActiveTab('services');
-  };
 
   const handleViewTimeline = (policyId: string) => {
     setSelectedPolicyId(policyId);
     setServiceView('policy-timeline');
-    setActiveTab('services');
   };
 
 
@@ -175,7 +130,6 @@ const MainApp: React.FC = () => {
   const handleCarrierDetail = (carrierId: string) => {
     setSelectedCarrierId(carrierId);
     setServiceView('carrier-detail');
-    setActiveTab('services');
   };
 
   const handleBackToServices = () => {
@@ -198,29 +152,6 @@ const MainApp: React.FC = () => {
     setServiceView('main');
   };
 
-
-  // Handle activity feed navigation
-  const handleNavigateActivity = async (item: ActivityItem) => {
-    switch (item.type) {
-      case 'claim': {
-        const claim = await getClaimById(item.id);
-        if (claim) {
-          setSelectedClaim(claim);
-          setServiceView('claim-detail');
-          setActiveTab('services');
-        }
-        break;
-      }
-      case 'coi':
-        setCoiView('history');
-        setActiveTab('coi');
-        break;
-      case 'policy':
-        setActiveTab('policy');
-        setServiceView('main');
-        break;
-    }
-  };
 
   const renderContent = () => {
     if (activeTab === 'covered') {
@@ -249,8 +180,8 @@ const MainApp: React.FC = () => {
     }
 
 
-    // Handle Services tab with sub-views
-    if (activeTab === 'services') {
+    // Flows opened from Policy (and similar): keep Policy tab highlighted in nav
+    if (serviceView !== 'main') {
       switch (serviceView) {
         case 'claim':
           return <FileClaim onBack={handleBackToServices} />;
@@ -339,26 +270,7 @@ const MainApp: React.FC = () => {
             />
           );
         default:
-          return (
-            <ServicesScreen
-              onRequestCOI={handleRequestCOI}
-              onFileClaim={handleFileClaim}
-              onCoverageChat={handleCoverageChat}
-              onUpdatePayment={handleUpdatePayment}
-              onDownloadDocuments={handleDownloadDocuments}
-              onBilling={handleBilling}
-              onCoiHistory={handleCoiHistory}
-              onClaimHistory={handleClaimHistory}
-              onRenewalReminders={handleRenewalReminders}
-              onShopRenewal={handleShopRenewal}
-              onAdminDashboard={isAdmin ? handleAdminDashboard : undefined}
-              onTrainAI={isAdmin ? handleTrainAI : undefined}
-              isAdmin={isAdmin}
-              onNavigateActivity={handleNavigateActivity}
-              onQuoteHistory={handleQuoteHistory}
-              onBrowseCarriers={handleBrowseCarriers}
-            />
-          );
+          return null;
       }
     }
 
@@ -403,6 +315,43 @@ const MainApp: React.FC = () => {
 
 
   const getTitle = () => {
+    if (serviceView !== 'main') {
+      switch (serviceView) {
+        case 'claim':
+          return 'File a Claim';
+        case 'payment':
+          return 'Update Payment';
+        case 'documents':
+          return 'Documents';
+        case 'billing':
+          return 'Payments & Billing';
+        case 'claim-history':
+          return 'Claim History';
+        case 'claim-detail':
+          return 'Claim Details';
+        case 'carrier-detail':
+          return 'Carrier Details';
+        case 'quote-history':
+          return 'Quote History';
+        case 'quote-compare':
+          return 'Compare Quotes';
+        case 'renewal-reminders':
+          return 'Renewal Reminders';
+        case 'shop-renewal':
+          return 'Shop Renewal';
+        case 'admin':
+          return 'Admin Dashboard';
+        case 'train-ai':
+          return 'Train AI';
+        case 'browse-carriers':
+          return 'Browse Carriers';
+        case 'policy-timeline':
+          return 'Policy Timeline';
+        default:
+          return 'My Policy';
+      }
+    }
+
     if (activeTab === 'covered') {
       return 'Am I Covered?';
     }
@@ -416,41 +365,6 @@ const MainApp: React.FC = () => {
     if (activeTab === 'quote') {
       return 'Get a Quote';
     }
-    
-    if (activeTab === 'services') {
-      switch (serviceView) {
-        case 'claim':
-          return 'File a Claim';
-        case 'payment':
-          return 'Update Payment';
-        case 'documents':
-          return 'Documents';
-        case 'billing':
-          return 'Payments & Billing';
-        case 'renewal-reminders':
-          return 'Renewal Reminders';
-        case 'shop-renewal':
-          return 'Shop Renewal';
-        case 'admin':
-          return 'Admin Dashboard';
-        case 'train-ai':
-          return 'Train AI';
-        case 'carrier-detail':
-          return 'Carrier Details';
-        case 'quote-history':
-          return 'Quote History';
-        case 'quote-compare':
-          return 'Compare Quotes';
-        case 'browse-carriers':
-          return 'Browse Carriers';
-        case 'policy-timeline':
-          return 'Policy Timeline';
-        default:
-          return 'Services';
-      }
-
-
-    }
 
     switch (activeTab) {
       case 'policy':
@@ -459,7 +373,6 @@ const MainApp: React.FC = () => {
         return 'My Profile';
       default:
         return 'CID Connect';
-
     }
   };
 
@@ -467,13 +380,10 @@ const MainApp: React.FC = () => {
 
   // Reset service view and clear selectedQuoteId when changing tabs
   const handleTabChange = (tab: TabType) => {
-    if (tab !== 'services') {
-      setServiceView('main');
-    }
+    setServiceView('main');
     if (tab !== 'coi') {
       setCoiView('hub');
     }
-    // Clear loaded quote when navigating away from quote tab
     if (tab !== 'quote') {
       setSelectedQuoteId(null);
     }
@@ -489,7 +399,7 @@ const MainApp: React.FC = () => {
         {renderContent()}
       </main>
 
-      <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
+      <BottomNav activeTab={serviceView !== 'main' ? 'policy' : activeTab} onTabChange={handleTabChange} />
     </div>
   );
 };

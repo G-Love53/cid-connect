@@ -206,7 +206,7 @@ const QuoteScreen: React.FC<QuoteScreenProps> = ({ quoteIdFromUrl, onBindSuccess
       </div>
 
       {/* Quote Form */}
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-visible">
         <div className="p-6 space-y-6">
           {/* Segment Selector */}
           <SegmentSelector onSelect={handleSegmentQuoteRoute} />
