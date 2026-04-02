@@ -1,7 +1,7 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Segment } from '@/types';
-import { getDistinctSegments } from '@/api';
-import { ChevronDown, Wrench, Home, Wine, Check, Zap, Thermometer, UtensilsCrossed, Car, Trees, Shield, Loader2 } from 'lucide-react';
+import { SEGMENT_QUOTE_CONTACTS } from '@/constants/segmentQuoteContacts';
+import { ChevronDown, Wrench, Home, Wine, Check, Zap, Thermometer, UtensilsCrossed, Car, Trees } from 'lucide-react';
 
 
 interface SegmentSelectorProps {
@@ -36,25 +36,14 @@ const getSegmentIcon = (iconName: string) => {
 
 const SegmentSelector: React.FC<SegmentSelectorProps> = ({ selectedSegment, onSelect }) => {
   const [isOpen, setIsOpen] = React.useState(false);
-  const [segments, setSegments] = useState<Segment[]>([]);
-  const [loadingSegments, setLoadingSegments] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Fetch segments dynamically from the database
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const data = await getDistinctSegments();
-        if (!cancelled) setSegments(data);
-      } catch (err) {
-        console.error('Error fetching segments:', err);
-      } finally {
-        if (!cancelled) setLoadingSegments(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
+  const segments: Segment[] = SEGMENT_QUOTE_CONTACTS.map((s) => ({
+    id: s.id,
+    name: s.name,
+    icon: s.icon,
+    description: s.quoteEmail,
+  }));
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -71,7 +60,7 @@ const SegmentSelector: React.FC<SegmentSelectorProps> = ({ selectedSegment, onSe
   return (
     <div className="w-full" ref={dropdownRef}>
       <label className="block text-sm font-semibold text-gray-700 mb-2">
-        Select Insurance Segment
+        Quote intake address
       </label>
       
       <div className="relative">
@@ -92,19 +81,13 @@ const SegmentSelector: React.FC<SegmentSelectorProps> = ({ selectedSegment, onSe
               </div>
             </div>
           ) : (
-            <span className="text-gray-400">
-              {loadingSegments ? 'Loading segments...' : 'Choose a segment...'}
-            </span>
+            <span className="text-gray-400">Choose a segment…</span>
           )}
-          {loadingSegments ? (
-            <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
-          ) : (
-            <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
-          )}
+          <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
         </button>
 
         {/* Dropdown Menu */}
-        {isOpen && !loadingSegments && (
+        {isOpen && (
           <div className="absolute z-20 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden max-h-80 overflow-y-auto transition-all duration-200">
             {segments.length === 0 ? (
               <div className="p-4 text-center text-gray-500 text-sm">

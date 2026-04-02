@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Segment, QuoteAnalysisResult, Policy } from '@/types';
 import { bindQuote, getQuoteDetails, notifyBindSuccess } from '@/api';
 import SegmentSelector from './SegmentSelector';
 import QuoteResults from './QuoteResults';
-import { FileText, Loader2, Sparkles, AlertTriangle, ArrowRight, Shield } from 'lucide-react';
+import { Loader2, Sparkles, AlertTriangle, ArrowRight, Shield, Mail } from 'lucide-react';
 
 interface QuoteScreenProps {
   quoteIdFromUrl?: string; // Optional: for loading a specific quote from URL
@@ -15,8 +14,6 @@ interface QuoteScreenProps {
 const QuoteScreen: React.FC<QuoteScreenProps> = ({ quoteIdFromUrl, onBindSuccess }) => {
   const { user } = useAuth();
   const [selectedSegment, setSelectedSegment] = useState<Segment | null>(null);
-  const [applicationDetails, setApplicationDetails] = useState('');
-  const [analyzing, setAnalyzing] = useState(false);
   const [binding, setBinding] = useState(false);
   const [result, setResult] = useState<QuoteAnalysisResult | null>(null);
   const [error, setError] = useState('');
@@ -55,61 +52,23 @@ const QuoteScreen: React.FC<QuoteScreenProps> = ({ quoteIdFromUrl, onBindSuccess
     loadQuoteFromUrl();
   }, [quoteIdFromUrl]);
 
-  const handleAnalyze = async () => {
+  const handleEmailQuoteRequest = () => {
     if (!selectedSegment) {
       setError('Please select an insurance segment');
       return;
     }
-    if (!applicationDetails.trim()) {
-      setError('Please enter application details');
+    const email = selectedSegment.description?.trim();
+    if (!email || !email.includes('@')) {
+      setError('This segment is missing a quote email. Please contact support.');
       return;
     }
-    if (applicationDetails.trim().length < 50) {
-      setError('Please provide more detailed application information (at least 50 characters)');
-      return;
-    }
-
     setError('');
-    setAnalyzing(true);
-    setResult(null);
-    setBindSuccess(false);
-
-    try {
-      const { data, error: fnError } = await supabase.functions.invoke('analyze-quote', {
-        body: {
-          segment: selectedSegment.name,
-          applicationDetails: applicationDetails.trim()
-        }
-      });
-
-      if (fnError) throw fnError;
-      
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      // data now includes carrierOptions, carrier, carrierId from the edge function
-      setResult(data as QuoteAnalysisResult);
-
-      // Save to database with carrier information
-      if (user) {
-        await supabase.from('quotes').insert({
-          user_id: user.id,
-          quote_id: data.quoteId,
-          segment: selectedSegment.name,
-          application_details: applicationDetails.trim(),
-          premium: data.premium,
-          coverage_summary: data.coverageSummary,
-          eligibility: data.eligibility,
-          carrier: data.carrier || 'CID Insurance Partners',
-          status: 'quoted'
-        });
-      }
-    } catch (err: any) {
-      setError(err.message || 'Failed to analyze quote. Please try again.');
-    }
-
-    setAnalyzing(false);
+    const subject = encodeURIComponent('Commercial insurance quote request');
+    const parts = ['Hi,', '', "I'd like a quote for an additional business.", ''];
+    if (user?.email) parts.push(`App account: ${user.email}`, '');
+    parts.push('Business / operations details:', '', '');
+    const body = encodeURIComponent(parts.join('\n'));
+    window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
   };
 
   const handleBind = async (carrierId?: string | null, carrierName?: string) => {
@@ -152,7 +111,6 @@ const QuoteScreen: React.FC<QuoteScreenProps> = ({ quoteIdFromUrl, onBindSuccess
 
   const handleNewQuote = () => {
     setSelectedSegment(null);
-    setApplicationDetails('');
     setResult(null);
     setBindSuccess(false);
     setNewPolicy(null);
@@ -255,8 +213,7 @@ const QuoteScreen: React.FC<QuoteScreenProps> = ({ quoteIdFromUrl, onBindSuccess
     <div className="max-w-2xl mx-auto">
       {/* Header */}
       <div className="text-center mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">Instant Quote</h1>
-        <p className="text-gray-500">Get a commercial insurance quote in seconds</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Request a quote</h1>
       </div>
 
       {/* Quote Form */}
@@ -268,27 +225,6 @@ const QuoteScreen: React.FC<QuoteScreenProps> = ({ quoteIdFromUrl, onBindSuccess
             onSelect={setSelectedSegment}
           />
 
-          {/* Application Details */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Enter Application Details
-            </label>
-            <div className="relative">
-              <textarea
-                value={applicationDetails}
-                onChange={(e) => setApplicationDetails(e.target.value)}
-                placeholder="Describe the business, operations, number of employees, annual revenue, years in business, claims history, and any specific coverage needs..."
-                className="w-full h-48 p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#F7941D] focus:border-transparent transition-all resize-none"
-              />
-              <div className="absolute bottom-3 right-3 text-xs text-gray-400">
-                {applicationDetails.length} characters
-              </div>
-            </div>
-            <p className="text-xs text-gray-400 mt-2">
-              Include: Business type, years in operation, revenue, employees, location, claims history
-            </p>
-          </div>
-
           {/* Error Message */}
           {error && (
             <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600">
@@ -297,23 +233,13 @@ const QuoteScreen: React.FC<QuoteScreenProps> = ({ quoteIdFromUrl, onBindSuccess
             </div>
           )}
 
-          {/* Analyze Button */}
           <button
-            onClick={handleAnalyze}
-            disabled={analyzing}
-            className="w-full bg-gradient-to-r from-[#F7941D] to-[#FDB54E] text-white py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 hover:from-[#E07D0D] hover:to-[#F7941D] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+            type="button"
+            onClick={handleEmailQuoteRequest}
+            className="w-full bg-gradient-to-r from-[#F7941D] to-[#FDB54E] text-white py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 hover:from-[#E07D0D] hover:to-[#F7941D] transition-all shadow-lg hover:shadow-xl"
           >
-            {analyzing ? (
-              <>
-                <Loader2 className="w-6 h-6 animate-spin" />
-                Analyzing Quote...
-              </>
-            ) : (
-              <>
-                <FileText className="w-6 h-6" />
-                ANALYZE QUOTE
-              </>
-            )}
+            <Mail className="w-6 h-6" />
+            Email quote request
           </button>
         </div>
       </div>
