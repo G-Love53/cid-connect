@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
+import { getPublicSiteOrigin } from '@/lib/siteUrl';
 import { User } from '@/types';
 
 interface AuthContextType {
@@ -172,7 +173,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const resetPassword = async (email: string) => {
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      const origin = getPublicSiteOrigin();
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        // Required for a valid recovery link; must match URL allowlist in Supabase Auth → Redirect URLs
+        redirectTo: origin ? `${origin}/` : undefined,
+      });
       return { error: error?.message || null };
     } catch (err) {
       console.error('resetPassword failed:', err);

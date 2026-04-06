@@ -38,7 +38,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, prefillEmail }) =>
         if (error) {
           setError(error);
         } else {
-          setMessage('Password reset email sent! Check your inbox.');
+          setMessage(
+            'If an account exists for this email, we sent a reset link. Check your inbox and spam folder.',
+          );
         }
       } else if (isLogin) {
         const { error } = await signIn(email, password);
