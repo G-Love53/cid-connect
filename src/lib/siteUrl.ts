@@ -5,3 +5,9 @@ export function getPublicSiteOrigin(): string {
   if (typeof window !== "undefined") return window.location.origin;
   return "";
 }
+
+/** Full URL for password recovery (must match Auth redirect allowlist + React route `/reset-password`). */
+export function getPasswordResetRedirectUrl(): string | undefined {
+  const origin = getPublicSiteOrigin();
+  return origin ? `${origin}/reset-password` : undefined;
+}
