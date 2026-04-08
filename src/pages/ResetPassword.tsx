@@ -1,9 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
+import { getRecoveryTokensFromHash, recoveryJwtHint } from "@/lib/authRecoveryHash";
 import { Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
 
 type Phase = "checking" | "ready" | "invalid";
+
+/** Recovery redirects include long JWTs in the hash; auth may call /user and take several seconds. */
+const RECOVERY_FAIL_AFTER_MS = 60_000;
 
 /**
  * Supabase recovery: email links to this path; tokens are in the URL hash.
@@ -18,9 +22,18 @@ const ResetPassword: React.FC = () => {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [phase, setPhase] = useState<Phase>("checking");
+  /** Set when initialize() fails (wrong project key, expired token, network) — not generic "expired" only. */
+  const [initError, setInitError] = useState<string | null>(null);
   const established = useRef(false);
 
   useEffect(() => {
+    let cancelled = false;
+
+    // Snapshot before any await: initialize() may clear the fragment on success; we still need tokens
+    // for setSession fallback if the automatic parse path fails without clearing the hash.
+    const hashSnapshot = typeof window !== "undefined" ? window.location.hash : "";
+    const searchSnapshot = typeof window !== "undefined" ? window.location.search : "";
+
     const markReady = () => {
       if (!established.current) {
         established.current = true;
@@ -36,20 +49,79 @@ const ResetPassword: React.FC = () => {
       }
     });
 
-    void supabase.auth.getSession().then(({ data: { session } }) => {
+    const hasRecoveryHash =
+      hashSnapshot.includes("access_token") || hashSnapshot.includes("type=recovery");
+
+    const configuredSupabaseUrl = import.meta.env.VITE_SUPABASE_URL ?? "";
+
+    void (async () => {
+      const { error: initErr } = await supabase.auth.initialize();
+      if (cancelled) return;
+
+      let { data: { session } } = await supabase.auth.getSession();
+      const tokens = getRecoveryTokensFromHash(hashSnapshot);
+
+      const withJwtHint = (msg: string) =>
+        msg + (tokens?.access_token ? recoveryJwtHint(tokens.access_token, configuredSupabaseUrl) : "");
+
+      // If GoTrue didn't attach a session from the URL (parser edge cases on very long hashes),
+      // establish the session explicitly from the fragment.
+      if (!session && tokens) {
+        const { data, error: setErr } = await supabase.auth.setSession({
+          access_token: tokens.access_token,
+          refresh_token: tokens.refresh_token,
+        });
+        if (data.session) {
+          session = data.session;
+          window.history.replaceState(null, "", window.location.pathname + window.location.search);
+        } else if (setErr) {
+          setInitError(withJwtHint(initErr?.message ?? setErr.message));
+          setPhase("invalid");
+          return;
+        }
+      }
+
+      if (cancelled) return;
+      if (initErr && !session) {
+        setInitError(withJwtHint(initErr.message));
+        setPhase("invalid");
+        return;
+      }
       if (session) markReady();
-    });
+    })();
+
+    // Hash parsing + /user validation can lag; stagger retries for slow networks.
+    if (hasRecoveryHash) {
+      for (const ms of [80, 250, 600, 1500, 4000, 10000]) {
+        window.setTimeout(() => {
+          if (cancelled) return;
+          void supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session) markReady();
+          });
+        }, ms);
+      }
+    }
 
     const failTimer = window.setTimeout(() => {
       void supabase.auth.getSession().then(({ data: { session } }) => {
+        if (cancelled) return;
         if (!established.current) {
           if (session) markReady();
-          else setPhase("invalid");
+          else {
+            const qp = new URLSearchParams(searchSnapshot.startsWith("?") ? searchSnapshot.slice(1) : searchSnapshot);
+            if (qp.has("code") && !qp.has("error")) {
+              setInitError(
+                "This URL has a ?code= parameter but no session was established. PKCE exchange requires a code_verifier stored in this browser when the flow started; password-reset links from email almost always use implicit tokens in the hash (#access_token=…), not PKCE. Do not set flowType to pkce for this app.",
+              );
+            }
+            setPhase("invalid");
+          }
         }
       });
-    }, 12000);
+    }, hasRecoveryHash ? RECOVERY_FAIL_AFTER_MS : 12_000);
 
     return () => {
+      cancelled = true;
       window.clearTimeout(failTimer);
       subscription.unsubscribe();
     };
@@ -101,13 +173,35 @@ const ResetPassword: React.FC = () => {
 
           <div className="p-6">
             {phase === "checking" && (
-              <p className="text-sm text-gray-600">Verifying your reset link…</p>
+              <div className="space-y-2">
+                <p className="text-sm text-gray-600">Verifying your reset link…</p>
+                <p className="text-xs text-gray-500">
+                  This step can take 10–15 seconds — the link contains a long token and your browser talks to the auth server to confirm it.
+                </p>
+              </div>
             )}
             {phase === "invalid" && (
               <div className="space-y-4">
-                <p className="text-sm text-gray-700">
-                  This reset link is invalid or has expired. Request a new one from the sign-in page.
-                </p>
+                {initError ? (
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                    <span className="font-medium text-gray-900">Could not use this link.</span>{" "}
+                    {initError}
+                  </p>
+                ) : (
+                  <div className="space-y-3 text-sm text-gray-700">
+                    <p>
+                      This reset link is invalid or has expired. Request a new one from the sign-in page.
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      If you keep seeing this with a fresh email: confirm Netlify build env{" "}
+                      <code className="text-gray-700 bg-gray-100 px-1 rounded">VITE_SUPABASE_URL</code>{" "}
+                      and <code className="text-gray-700 bg-gray-100 px-1 rounded">VITE_SUPABASE_ANON_KEY</code>{" "}
+                      are for the same DatabasePad project as the link (e.g.{" "}
+                      <code className="text-gray-700 bg-gray-100 px-1 rounded">…databasepad.com</code>
+                      ), not a different supabase.co project.
+                    </p>
+                  </div>
+                )}
                 <a
                   href="/"
                   className="inline-block w-full text-center py-3 rounded-lg bg-[#1B3A5F] text-white font-medium hover:bg-[#152d4a]"
