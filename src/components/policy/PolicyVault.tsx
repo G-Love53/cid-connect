@@ -22,7 +22,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
+import { getActivePolicyForUser } from '@/api';
 import { Policy } from '@/types';
 
 interface PolicyVaultProps {
@@ -66,20 +66,8 @@ const PolicyVault: React.FC<PolicyVaultProps> = ({
     
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('policies')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching policy:', error);
-      }
-      
-      setPolicy(data);
+      const active = await getActivePolicyForUser(user.id);
+      setPolicy(active);
     } catch (err) {
       console.error('Error:', err);
     } finally {

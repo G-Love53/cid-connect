@@ -59,6 +59,7 @@ If any required handoff item is missing, implementation pauses until the patch i
 |--------|------|
 | Bind-token onboarding (validate / redeem / onboarding flag) | `reference/docs/BIND_TOKEN_SMOKE_TEST.md` |
 | Full app E2E (admin, quotes, webhooks, etc.) | `reference/cid-connect-famous/E2E_SMOKE_TEST.md` |
+| Staging quote → bind → policy → Connect | `docs/STAGING_INTEGRATION_TEST_PLAN_DRAFT.md` |
 
 `redeem-bind-token` uses **`SUPABASE_URL`** + **`SUPABASE_SERVICE_ROLE_KEY`** (see `reference/functions/redeem-bind-token/index.ts` and `docs/DEPLOY.md`). Do not document **`database_*`** names for that function.
 
@@ -76,6 +77,14 @@ Git is the source of truth. If documentation or chat uses a different label, map
 | `redeem-bind-token` secrets | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | ad-hoc `database_*` names |
 
 User-facing labels for redeemed tokens use **Used**; internal status values may still be `'redeemed'` for compatibility. Both map to **`used_at`** in the database.
+
+---
+
+## Operator / CID-PDF-API — data store and Gmail poller (avoid confusion)
+
+- **`carrier_messages`**, poller dedupe, and related pipeline tables live in **Render Postgres** behind **`DATABASE_URL`** on **CID-PDF-API**, not in the Famous project you use for Connect **auth** unless you have explicitly replicated data there. Running SQL in the wrong project produces “relation does not exist” or misleading empty results.
+- **Gmail poller (March 2026 investigation):** Duplicate **`carrier_messages`** rows for the same **`(gmail_message_id, segment)`** were traced to **short bursts** (e.g. March 11 and 18), not a steady “every three minutes forever” pattern. A **last-N-days** duplicate check showed **no** duplicate groups in the recent window at verification time — treat ongoing risk as **monitoring**, not an open fire without new evidence.
+- **Dedupe tooling (optional cleanup):** The poller includes **`dedupeCarrierMessagesForGmail`**. In **pdf-backend**, **`npm run dedupe:carrier-messages`** and a browser form at **`/operator/maintenance/dedupe-carrier-messages`** (env **`CID_MAINTENANCE_SECRET`**) exist for one-off cleanup — use only with ops agreement; destructive to duplicate-linked rows.
 
 ---
 

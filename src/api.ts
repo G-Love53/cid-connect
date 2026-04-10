@@ -1,6 +1,16 @@
 // src/api.ts - CID Connect API Integration Layer
 
 import { supabase } from '@/lib/supabase';
+import {
+    isConnectInsuranceApiEnabled,
+    connectGet,
+    connectPost,
+    mapConnectPolicyRow,
+    mapConnectQuoteRow,
+    mapConnectClaimRow,
+    mapConnectCoiRow,
+    mapConnectDocumentRow,
+} from '@/lib/connectApi';
 import { Quote, Policy, Document, Claim, COIRequest, CarrierResource, CarrierOption, Carrier } from '@/types';
 
 
@@ -83,21 +93,39 @@ const getBaseUrl = async (segment: string): Promise<string> => {
  * Returns an array of Segment objects with auto-generated display info.
  */
 export async function getDistinctSegments(): Promise<import('@/types').Segment[]> {
-    const [policiesRes, quotesRes] = await Promise.all([
-        supabase.from('policies').select('segment'),
-        supabase.from('quotes').select('segment')
-    ]);
-
     const segmentSet = new Set<string>();
 
-    if (policiesRes.data) {
-        for (const row of policiesRes.data) {
-            if (row.segment) segmentSet.add(row.segment.toLowerCase());
+    if (isConnectInsuranceApiEnabled()) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) {
+            return [];
         }
-    }
-    if (quotesRes.data) {
-        for (const row of quotesRes.data) {
-            if (row.segment) segmentSet.add(row.segment.toLowerCase());
+        const uid = session.user.id;
+        const [policies, quotes] = await Promise.all([
+            getUserPolicies(uid),
+            getUserQuotes(uid),
+        ]);
+        for (const p of policies) {
+            if (p.segment) segmentSet.add(p.segment.toLowerCase());
+        }
+        for (const q of quotes) {
+            if (q.segment) segmentSet.add(q.segment.toLowerCase());
+        }
+    } else {
+        const [policiesRes, quotesRes] = await Promise.all([
+            supabase.from('policies').select('segment'),
+            supabase.from('quotes').select('segment')
+        ]);
+
+        if (policiesRes.data) {
+            for (const row of policiesRes.data) {
+                if (row.segment) segmentSet.add(row.segment.toLowerCase());
+            }
+        }
+        if (quotesRes.data) {
+            for (const row of quotesRes.data) {
+                if (row.segment) segmentSet.add(row.segment.toLowerCase());
+            }
         }
     }
 
@@ -160,6 +188,21 @@ export function getSegmentColorClass(segment: string): string {
  * @returns Quote object with carrier and premium
  */
 export async function getQuoteDetails(id: string): Promise<Quote | null> {
+    if (isConnectInsuranceApiEnabled()) {
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.user) return null;
+            const j = await connectGet<Record<string, unknown>>(`/quotes/${encodeURIComponent(id)}`);
+            if (!j.ok || !j.data) {
+                return null;
+            }
+            return mapConnectQuoteRow(j.data as Record<string, unknown>, session.user.id);
+        } catch (e) {
+            console.error('Error fetching quote details (connect):', e);
+            return null;
+        }
+    }
+
     // First try to find by quote_id (the human-readable ID like "QT-123456")
     let { data, error } = await supabase
         .from('quotes')
@@ -309,6 +352,21 @@ function getNextPaymentDate(): string {
  * Get all quotes for a user
  */
 export async function getUserQuotes(userId: string): Promise<Quote[]> {
+    if (isConnectInsuranceApiEnabled()) {
+        try {
+            const j = await connectGet<Record<string, unknown>[]>('/quotes');
+            if (!j.ok || !j.data) {
+                console.error('Error fetching user quotes (connect):', j.error);
+                return [];
+            }
+            const rows = Array.isArray(j.data) ? j.data : [];
+            return rows.map((row) => mapConnectQuoteRow(row as Record<string, unknown>, userId));
+        } catch (e) {
+            console.error('Error fetching user quotes (connect):', e);
+            return [];
+        }
+    }
+
     const { data, error } = await supabase
         .from('quotes')
         .select('*')
@@ -327,6 +385,21 @@ export async function getUserQuotes(userId: string): Promise<Quote[]> {
  * Get all policies for a user
  */
 export async function getUserPolicies(userId: string): Promise<Policy[]> {
+    if (isConnectInsuranceApiEnabled()) {
+        try {
+            const j = await connectGet<Record<string, unknown>[]>('/policies');
+            if (!j.ok || !j.data) {
+                console.error('Error fetching user policies (connect):', j.error);
+                return [];
+            }
+            const rows = Array.isArray(j.data) ? j.data : [];
+            return rows.map((row) => mapConnectPolicyRow(row as Record<string, unknown>, userId));
+        } catch (e) {
+            console.error('Error fetching user policies (connect):', e);
+            return [];
+        }
+    }
+
     const { data, error } = await supabase
         .from('policies')
         .select('*')
@@ -340,10 +413,30 @@ export async function getUserPolicies(userId: string): Promise<Policy[]> {
     return data as Policy[];
 }
 
+/** Most recent active policy for the insured (Connect API or Supabase). */
+export async function getActivePolicyForUser(userId: string): Promise<Policy | null> {
+    const policies = await getUserPolicies(userId);
+    const active = policies.filter((p) => p.status === 'active');
+    active.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    return active[0] ?? null;
+}
+
 /**
  * Get the ai_summary from a user's most recent bound quote
  */
 export async function getAiSummaryForPolicy(userId: string, policySegment?: string): Promise<any | null> {
+    if (isConnectInsuranceApiEnabled()) {
+        const quotes = await getUserQuotes(userId);
+        const bound = quotes.filter(
+            (q) =>
+                q.status === 'bound' &&
+                q.ai_summary != null &&
+                (!policySegment || q.segment === policySegment),
+        );
+        bound.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        return bound[0]?.ai_summary ?? null;
+    }
+
     let query = supabase
         .from('quotes')
         .select('ai_summary, segment')
@@ -357,7 +450,7 @@ export async function getAiSummaryForPolicy(userId: string, policySegment?: stri
         query = query.eq('segment', policySegment);
     }
 
-    const { data, error } = await query.single();
+    const { data, error } = await query.maybeSingle();
 
     if (error) {
         console.error('Error fetching AI summary:', error);
@@ -377,6 +470,26 @@ export async function getAiSummaryForPolicy(userId: string, policySegment?: stri
  * @returns Array of Document objects
  */
 export async function getUserDocuments(userId: string): Promise<Document[]> {
+    if (isConnectInsuranceApiEnabled()) {
+        try {
+            const policies = await getUserPolicies(userId);
+            const out: Document[] = [];
+            for (const p of policies) {
+                const j = await connectGet<Record<string, unknown>[]>(`/policies/${encodeURIComponent(p.id)}/documents`);
+                if (!j.ok || !j.data) continue;
+                const rows = Array.isArray(j.data) ? j.data : [];
+                for (const row of rows) {
+                    out.push(mapConnectDocumentRow(row as Record<string, unknown>, userId));
+                }
+            }
+            out.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+            return out;
+        } catch (e) {
+            console.error('Error fetching user documents (connect):', e);
+            return [];
+        }
+    }
+
     const { data, error } = await supabase
         .from('documents')
         .select('*')
@@ -595,10 +708,57 @@ export async function submitClaim(
     userId: string, 
     claimData: ClaimFormData
 ): Promise<{ claim: Claim | null; backendResponse: any }> {
-    // Generate claim number
+    // Notify the segment-specific backend (same for Supabase and cid-postgres)
+    const formattedSegment = formatSegmentForApi(claimData.segment);
+    let backendResponse: any = null;
+
+    if (isConnectInsuranceApiEnabled()) {
+        const j = await connectPost<Record<string, unknown>>('/claims', {
+            policyId: claimData.policyId,
+            description: claimData.detailedDescription,
+            incidentDate: claimData.dateOfIncident,
+            locationOfIncident: claimData.locationOfIncident,
+            typeOfLoss: claimData.typeOfLoss,
+            estimatedAmount: claimData.estimatedAmount,
+            photos: claimData.photos || [],
+        });
+
+        if (!j.ok || !j.data) {
+            console.error('Error saving claim (connect):', j.error);
+            throw new Error(j.error || 'Failed to save claim');
+        }
+
+        const claim = mapConnectClaimRow(j.data as Record<string, unknown>, userId);
+        const claimNumber = claim.claim_number || '';
+
+        try {
+            const response = await fileClaim(userId, formattedSegment, {
+                claimNumber,
+                policyId: claimData.policyId,
+                policyNumber: claimData.policyNumber,
+                businessName: claimData.businessName,
+                typeOfLoss: claimData.typeOfLoss,
+                dateOfIncident: claimData.dateOfIncident,
+                locationOfIncident: claimData.locationOfIncident,
+                detailedDescription: claimData.detailedDescription,
+                estimatedAmount: claimData.estimatedAmount,
+                photos: claimData.photos
+            });
+            backendResponse = response;
+        } catch (apiError: any) {
+            console.error('Backend notification failed:', apiError);
+            backendResponse = {
+                error: apiError.message,
+                warning: true,
+                message: 'Claim saved. Backend notification pending.'
+            };
+        }
+
+        return { claim, backendResponse };
+    }
+
     const claimNumber = `CLM-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
     
-    // Insert claim into database
     const { data: claim, error: dbError } = await supabase
         .from('claims')
         .insert({
@@ -625,10 +785,6 @@ export async function submitClaim(
         throw new Error('Failed to save claim');
     }
 
-    // Notify the segment-specific backend
-    let backendResponse = null;
-    const formattedSegment = formatSegmentForApi(claimData.segment);
-    
     try {
         const response = await fileClaim(userId, formattedSegment, {
             claimNumber,
@@ -645,7 +801,6 @@ export async function submitClaim(
         
         backendResponse = response;
         
-        // Update claim with backend notification status
         await supabase
             .from('claims')
             .update({ 
@@ -670,6 +825,21 @@ export async function submitClaim(
  * Get all claims for a user
  */
 export async function getUserClaims(userId: string): Promise<Claim[]> {
+    if (isConnectInsuranceApiEnabled()) {
+        try {
+            const j = await connectGet<Record<string, unknown>[]>('/claims');
+            if (!j.ok || !j.data) {
+                console.error('Error fetching user claims (connect):', j.error);
+                return [];
+            }
+            const rows = Array.isArray(j.data) ? j.data : [];
+            return rows.map((row) => mapConnectClaimRow(row as Record<string, unknown>, userId));
+        } catch (e) {
+            console.error('Error fetching user claims (connect):', e);
+            return [];
+        }
+    }
+
     const { data, error } = await supabase
         .from('claims')
         .select('*')
@@ -696,14 +866,13 @@ export async function getUserProfile(userId: string): Promise<{ role: string } |
         .from('profiles')
         .select('role')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
     if (error) {
-        // If no profile exists, return default role
         return { role: 'agent' };
     }
 
-    return data;
+    return data ?? { role: 'agent' };
 }
 
 /**
@@ -919,7 +1088,7 @@ export async function getUserEmailById(userId: string): Promise<string | null> {
     .from('profiles')
     .select('email')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
 
   if (error || !data) {
     console.error('Error fetching user email:', error);
@@ -1321,7 +1490,67 @@ export async function submitCoiRequest(
     formData: CoiFormData,
     file?: File | null
 ): Promise<{ coiRequest: COIRequest; backendResponse: any }> {
-    
+    const fullAddress = [
+        formData.address,
+        formData.city,
+        formData.state,
+        formData.zip
+    ].filter(Boolean).join(', ');
+
+    if (isConnectInsuranceApiEnabled()) {
+        if (!policyId) {
+            throw new Error('A policy is required to submit a COI request.');
+        }
+        const j = await connectPost<Record<string, unknown>>('/coi/request', {
+            policyId,
+            holderName: formData.holderName,
+            holderAddress: formData.address,
+            city: formData.city,
+            state: formData.state,
+            zip: formData.zip,
+            email: formData.email,
+            certificateType: formData.certificateType,
+            additionalInstructions: formData.additionalInstructions,
+        });
+        if (!j.ok || !j.data) {
+            throw new Error(j.error || 'Failed to save COI request');
+        }
+        let coiRequest = mapConnectCoiRow(j.data as Record<string, unknown>, userId);
+        if (file) {
+            const path = await uploadCoiFile(userId, coiRequest.request_number, file);
+            if (path) {
+                coiRequest = {
+                    ...coiRequest,
+                    uploaded_file_path: path,
+                    uploaded_file_name: file.name,
+                };
+            }
+        }
+        let backendResponse: any = null;
+        const formattedSegment = formatSegmentForApi(segment || '');
+        try {
+            backendResponse = await requestCoi(formattedSegment, {
+                userId,
+                policyId: policyId || '',
+                recipientName: formData.holderName,
+                recipientEmail: formData.email,
+                certificateHolderAddress: fullAddress,
+                specialRequirements: [
+                    formData.certificateType !== 'standard' ? `Type: ${formData.certificateType}` : '',
+                    formData.additionalInstructions || ''
+                ].filter(Boolean).join('\n')
+            });
+        } catch (apiError: any) {
+            console.error('Backend COI notification failed:', apiError);
+            backendResponse = {
+                error: apiError.message,
+                warning: true,
+                message: 'COI request saved. Backend notification pending — our team will process it manually.'
+            };
+        }
+        return { coiRequest, backendResponse };
+    }
+
     // Step 1: Generate request number
     const requestNumber = `COI-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 
@@ -1333,14 +1562,6 @@ export async function submitCoiRequest(
         uploadedFilePath = await uploadCoiFile(userId, requestNumber, file);
         uploadedFileName = file.name;
     }
-
-    // Step 3: Build the full address string
-    const fullAddress = [
-        formData.address,
-        formData.city,
-        formData.state,
-        formData.zip
-    ].filter(Boolean).join(', ');
 
     // Step 4: INSERT into coi_requests table
     const { data: coiRequest, error: dbError } = await supabase
@@ -1426,6 +1647,21 @@ export async function submitCoiRequest(
  * Get all COI requests for a user
  */
 export async function getUserCoiRequests(userId: string): Promise<COIRequest[]> {
+    if (isConnectInsuranceApiEnabled()) {
+        try {
+            const j = await connectGet<Record<string, unknown>[]>('/coi/history');
+            if (!j.ok || !j.data) {
+                console.error('Error fetching user COI requests (connect):', j.error);
+                return [];
+            }
+            const rows = Array.isArray(j.data) ? j.data : [];
+            return rows.map((row) => mapConnectCoiRow(row as Record<string, unknown>, userId));
+        } catch (e) {
+            console.error('Error fetching user COI requests (connect):', e);
+            return [];
+        }
+    }
+
     const { data, error } = await supabase
         .from('coi_requests')
         .select('*')
@@ -1438,6 +1674,18 @@ export async function getUserCoiRequests(userId: string): Promise<COIRequest[]> 
     }
 
     return data as COIRequest[];
+}
+
+/** Claims for one policy (timeline / detail). */
+export async function getClaimsForPolicy(policyId: string, userId: string): Promise<Claim[]> {
+    const all = await getUserClaims(userId);
+    return all.filter((c) => c.policy_id === policyId);
+}
+
+/** COI requests for one policy (timeline). */
+export async function getCoiRequestsForPolicy(policyId: string, userId: string): Promise<COIRequest[]> {
+    const all = await getUserCoiRequests(userId);
+    return all.filter((c) => c.policy_id === policyId);
 }
 
 /**
@@ -1669,6 +1917,13 @@ export async function updateClaimSettlement(
  * Get a single claim by its UUID
  */
 export async function getClaimById(claimId: string): Promise<Claim | null> {
+  if (isConnectInsuranceApiEnabled()) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return null;
+    const rows = await getUserClaims(session.user.id);
+    return rows.find((c) => c.id === claimId) || null;
+  }
+
   const { data, error } = await supabase
     .from('claims')
     .select('*')
@@ -1687,6 +1942,13 @@ export async function getClaimById(claimId: string): Promise<Claim | null> {
  * Get a single COI request by its UUID
  */
 export async function getCoiRequestById(coiId: string): Promise<COIRequest | null> {
+  if (isConnectInsuranceApiEnabled()) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return null;
+    const rows = await getUserCoiRequests(session.user.id);
+    return rows.find((c) => c.id === coiId) || null;
+  }
+
   const { data, error } = await supabase
     .from('coi_requests')
     .select('*')
@@ -1705,19 +1967,34 @@ export async function getCoiRequestById(coiId: string): Promise<COIRequest | nul
  * Get a single policy by its UUID
  */
 export async function getPolicyById(policyId: string): Promise<Policy | null> {
+  if (isConnectInsuranceApiEnabled()) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return null;
+      const j = await connectGet<Record<string, unknown>>(`/policies/${encodeURIComponent(policyId)}`);
+      if (!j.ok || !j.data) {
+        return null;
+      }
+      return mapConnectPolicyRow(j.data as Record<string, unknown>, session.user.id);
+    } catch (e) {
+      console.error('Error fetching policy by id (connect):', e);
+      return null;
+    }
+  }
+
   const { data, error } = await supabase
     .from('policies')
     .select('*')
     .eq('id', policyId)
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error('Error fetching policy by id:', error);
     return null;
   }
 
+  if (!data) return null;
   return data as Policy;
-
 }
 
 // ============================================
@@ -3550,7 +3827,7 @@ export async function getProfileNameById(userId: string): Promise<string | null>
     .from('profiles')
     .select('full_name, email')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
 
   if (error || !data) return null;
   return data.full_name || data.email || null;

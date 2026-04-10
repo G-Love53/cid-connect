@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { getUserQuotes } from '@/api';
 import { Quote } from '@/types';
 import { ArrowLeft, Clock, DollarSign, CheckCircle, AlertCircle, XCircle, Search, Filter, ChevronRight, FileText, Loader2, RefreshCw, ExternalLink, GitCompare, Square, CheckSquare, X } from 'lucide-react';
 
@@ -32,16 +32,8 @@ const QuoteHistory: React.FC<QuoteHistoryProps> = ({ onBack, onOpenQuote, onComp
     if (!user) return;
 
     setLoading(true);
-    const { data, error } = await supabase
-      .from('quotes')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(20);
-
-    if (!error && data) {
-      setQuotes(data);
-    }
+    const data = await getUserQuotes(user.id);
+    setQuotes(data.slice(0, 20));
     setLoading(false);
   };
 

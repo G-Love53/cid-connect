@@ -2,7 +2,7 @@
 
 Commercial insurance platform with quoting, policy management, claims, COI requests, and admin dashboard.
 
-**Next dev:** read **`docs/ARCHITECTURE.md`**, **`docs/AI_MODEL_POLICY.md`**, and **`docs/WORKFLOW_HANDOFF.md`**.
+**Next dev:** read **`docs/ARCHITECTURE.md`** (target vs **shipped** data bridge), **`docs/AI_MODEL_POLICY.md`**, and **`docs/WORKFLOW_HANDOFF.md`**. For staging **quote → bind → policy → Connect**, use **`docs/STAGING_INTEGRATION_TEST_PLAN_DRAFT.md`**. For **API bridge Step 1 (Supabase audit)**, see **`docs/CONNECT_API_BRIDGE_STEP1_AUDIT.md`**.
 
 ## Source of truth & workflow (default)
 

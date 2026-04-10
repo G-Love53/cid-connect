@@ -18,7 +18,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Policy, ChatMessage } from '@/types';
 import { toast } from '@/components/ui/use-toast';
-import { getAiSummaryForPolicy } from '@/api';
+import { getAiSummaryForPolicy, getActivePolicyForUser } from '@/api';
+import { isConnectInsuranceApiEnabled, connectPost } from '@/lib/connectApi';
 
 interface CoverageChatProps {
   onBack: () => void;
@@ -54,20 +55,9 @@ const CoverageChat: React.FC<CoverageChatProps> = ({ onBack }) => {
     if (!user) return;
     
     try {
-      // Fetch active policy
-      const { data: policyData, error: policyError } = await supabase
-        .from('policies')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (!policyError && policyData) {
+      const policyData = await getActivePolicyForUser(user.id);
+      if (policyData) {
         setPolicy(policyData);
-        
-        // Fetch AI summary from the bound quote
         const summary = await getAiSummaryForPolicy(user.id, policyData.segment);
         if (summary) {
           setAiSummary(summary);
@@ -152,19 +142,31 @@ const CoverageChat: React.FC<CoverageChatProps> = ({ onBack }) => {
         content: msg.content
       }));
 
-      // Call the coverage-chat edge function with AI summary
-      const { data, error } = await supabase.functions.invoke('coverage-chat', {
-        body: {
+      let assistantMessage: string;
+
+      if (isConnectInsuranceApiEnabled()) {
+        const chatRes = await connectPost<{ message: string }>('/chat', {
           message: userMessage,
           policyContext: policy,
           chatHistory: recentHistory,
-          aiSummary: aiSummary // Pass the AI summary for detailed coverage Q&A
+          aiSummary: aiSummary
+        });
+        if (!chatRes.ok || !chatRes.data?.message) {
+          throw new Error(chatRes.error || 'Chat request failed');
         }
-      });
-
-      if (error) throw error;
-
-      const assistantMessage = data.message || "I'm sorry, I couldn't process your request.";
+        assistantMessage = chatRes.data.message;
+      } else {
+        const { data, error } = await supabase.functions.invoke('coverage-chat', {
+          body: {
+            message: userMessage,
+            policyContext: policy,
+            chatHistory: recentHistory,
+            aiSummary: aiSummary
+          }
+        });
+        if (error) throw error;
+        assistantMessage = data.message || "I'm sorry, I couldn't process your request.";
+      }
 
       // Save and display assistant message
       const savedAssistant = await saveChatMessage('assistant', assistantMessage);

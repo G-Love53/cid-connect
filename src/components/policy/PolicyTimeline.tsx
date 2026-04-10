@@ -17,8 +17,13 @@ import {
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/lib/supabase';
-import { Policy, Quote, Claim, COIRequest } from '@/types';
+import {
+  getPolicyById,
+  getUserQuotes,
+  getClaimsForPolicy,
+  getCoiRequestsForPolicy,
+} from '@/api';
+import { Policy } from '@/types';
 
 interface PolicyTimelineProps {
   policyId: string;
@@ -51,20 +56,15 @@ const PolicyTimeline: React.FC<PolicyTimelineProps> = ({ policyId, onBack }) => 
     setError('');
 
     try {
-      // Fetch the policy
-      const { data: policyData, error: policyError } = await supabase
-        .from('policies')
-        .select('*')
-        .eq('id', policyId)
-        .single();
+      const policyData = await getPolicyById(policyId);
 
-      if (policyError || !policyData) {
+      if (!policyData) {
         setError('Policy not found');
         setLoading(false);
         return;
       }
 
-      setPolicy(policyData as Policy);
+      setPolicy(policyData);
 
       const timelineEvents: TimelineEvent[] = [];
 
@@ -127,15 +127,9 @@ const PolicyTimeline: React.FC<PolicyTimelineProps> = ({ policyId, onBack }) => 
         });
       }
 
-      // 5. Fetch linked quotes (by user_id + segment, or bound quotes)
-      const { data: quotes } = await supabase
-        .from('quotes')
-        .select('*')
-        .eq('user_id', policyData.user_id)
-        .order('created_at', { ascending: false })
-        .limit(10);
+      const quotes = (await getUserQuotes(policyData.user_id)).slice(0, 10);
 
-      if (quotes) {
+      if (quotes.length) {
         for (const q of quotes) {
           timelineEvents.push({
             id: `quote-${q.id}`,
@@ -163,14 +157,9 @@ const PolicyTimeline: React.FC<PolicyTimelineProps> = ({ policyId, onBack }) => 
         }
       }
 
-      // 6. Fetch claims for this policy
-      const { data: claims } = await supabase
-        .from('claims')
-        .select('*')
-        .eq('policy_id', policyId)
-        .order('created_at', { ascending: false });
+      const claims = await getClaimsForPolicy(policyId, policyData.user_id);
 
-      if (claims) {
+      if (claims.length) {
         for (const c of claims) {
           timelineEvents.push({
             id: `claim-${c.id}`,
@@ -198,14 +187,9 @@ const PolicyTimeline: React.FC<PolicyTimelineProps> = ({ policyId, onBack }) => 
         }
       }
 
-      // 7. Fetch COI requests for this policy
-      const { data: coiRequests } = await supabase
-        .from('coi_requests')
-        .select('*')
-        .eq('policy_id', policyId)
-        .order('created_at', { ascending: false });
+      const coiRequests = await getCoiRequestsForPolicy(policyId, policyData.user_id);
 
-      if (coiRequests) {
+      if (coiRequests.length) {
         for (const coi of coiRequests) {
           timelineEvents.push({
             id: `coi-${coi.id}`,

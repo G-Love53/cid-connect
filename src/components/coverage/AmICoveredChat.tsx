@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { isConnectInsuranceApiEnabled, connectPost } from '@/lib/connectApi';
 import { Bot, Send, Shield, Sparkles } from 'lucide-react';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
@@ -48,18 +49,35 @@ const AmICoveredChat: React.FC<Props> = ({ onBack }) => {
     setSending(true);
     setMessages((prev) => [...prev, { role: 'user', content: message }]);
     try {
-      const { data, error } = await supabase.functions.invoke('coverage-chat', {
-        body: {
+      let reply: string;
+      if (isConnectInsuranceApiEnabled()) {
+        const chatRes = await connectPost<{ message: string }>('/chat', {
           message,
           chatHistory: messages.slice(-8),
-          userId: user?.id ?? null,
-        },
-      });
-      if (error) throw error;
-      const reply = data?.message || 'I could not process that request.';
-      setLastModelUsed(data?.model_used ?? null);
-      setLastFallbackUsed(Boolean(data?.fallback_used));
-      setLastFallbackReason(data?.fallback_reason ?? null);
+          policyContext: null,
+          aiSummary: null,
+        });
+        if (!chatRes.ok || !chatRes.data?.message) {
+          throw new Error(chatRes.error || 'Chat failed');
+        }
+        reply = chatRes.data.message;
+        setLastModelUsed('CID-PDF-API');
+        setLastFallbackUsed(false);
+        setLastFallbackReason(null);
+      } else {
+        const { data, error } = await supabase.functions.invoke('coverage-chat', {
+          body: {
+            message,
+            chatHistory: messages.slice(-8),
+            userId: user?.id ?? null,
+          },
+        });
+        if (error) throw error;
+        reply = data?.message || 'I could not process that request.';
+        setLastModelUsed(data?.model_used ?? null);
+        setLastFallbackUsed(Boolean(data?.fallback_used));
+        setLastFallbackReason(data?.fallback_reason ?? null);
+      }
       setMessages((prev) => [...prev, { role: 'assistant', content: reply }]);
     } catch {
       setMessages((prev) => [

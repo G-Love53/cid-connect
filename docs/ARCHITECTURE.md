@@ -33,13 +33,24 @@ Clean split: **where code lives (Git)** vs **what serves traffic** vs **where da
 
 **Netlify does not replace Famous.** It only **serves the built frontend** (and URL) if you connect it to this repo. The app still talks to **Famous** for DB and to **Render** for CID APIs.
 
-## Data bridge (approved)
+## Data bridge (approved target)
 
 - Connect browser uses Famous auth/session context; browser never gets service-role credentials.
-- Policy/doc/client reads come from `cid-postgres` through a backend service (with read-replica + pooling), not direct browser DB access.
+- **Target:** Policy/doc/client reads come from **`cid-postgres`** through a backend service (with read-replica + pooling), not direct browser DB access.
 - Identity mapping: Famous `user.id` (UUID) maps to insurance records via `clients.famous_user_id`.
 - Performance target: sub-200ms policy reads with index on `famous_user_id`; cache summaries for 5 minutes.
 - Degraded mode: show a temporary-unavailable message and cached summary while fresh data refreshes.
+
+## Data bridge — current shipped behavior (verify in code)
+
+**Do not assume “Supabase = auth only” for Connect.** As of the current `cid-connect` codebase, the app uses the **Supabase client** for **many insurance-facing tables**, including **`policies`** (e.g. policy vault, coverage chat, admin lists) via **`supabase.from('policies')`** and related queries, subject to RLS. **Segment backend URLs** (from **`app_settings`**, e.g. `segment_backend_bar`) are used for **actions** that `fetch` CID-PDF-API routes (COI, claims, renewal flows, coverage analysis, etc.) — not a wholesale replacement for every policy read.
+
+Reconcile any external handoff that says “Connect reads insurance only via `cid-pdf-api`” with the **actual** read path in Git before testing or demos. When the bridge fully moves policy reads behind the API, update this section and **`docs/STAGING_INTEGRATION_TEST_PLAN_DRAFT.md`** §4.
+
+## Where operator / pipeline data lives (don’t query the wrong DB)
+
+- **Famous / DatabasePad (Supabase-compatible):** Auth, Connect app tables you configure there, Edge Functions — **`VITE_SUPABASE_URL`** in the browser.
+- **Render `DATABASE_URL` (e.g. `cid_postgres`):** **CID-PDF-API** (`pdf-backend`) — submissions, quotes, **`carrier_messages`**, operator queue, bind flow, Gmail poller writes, etc. SQL against “carrier pipeline” tables belongs here, **not** in the Famous SQL editor unless you have explicitly synced or replicated that data there.
 
 ## Bind-token onboarding (cross-segment)
 

@@ -24,11 +24,11 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
 import { Policy, Document, CarrierResource } from '@/types';
 import { toast } from '@/components/ui/use-toast';
 import { 
-  getUserDocuments, 
+  getUserDocuments,
+  getActivePolicyForUser,
   getDownloadUrl, 
   downloadDocumentFile,
   getCarrierResources,
@@ -60,20 +60,9 @@ const DownloadDocuments: React.FC<DownloadDocumentsProps> = ({ onBack }) => {
     if (!user) return;
     
     try {
-      // Fetch active policy
-      const { data: policyData, error: policyError } = await supabase
-        .from('policies')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (!policyError && policyData) {
+      const policyData = await getActivePolicyForUser(user.id);
+      if (policyData) {
         setPolicy(policyData);
-        
-        // Fetch carrier resources matching the policy's carrier and segment
         const resources = await getCarrierResources(policyData.carrier, policyData.segment);
         setCarrierResources(resources);
       }

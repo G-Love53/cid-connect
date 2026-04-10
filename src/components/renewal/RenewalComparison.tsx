@@ -21,6 +21,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Policy } from '@/types';
 import { toast } from '@/components/ui/use-toast';
+import { getActivePolicyForUser } from '@/api';
 
 interface RenewalComparisonProps {
   onBack: () => void;
@@ -65,18 +66,8 @@ const RenewalComparison: React.FC<RenewalComparisonProps> = ({ onBack }) => {
     if (!user) return;
     
     try {
-      const { data, error } = await supabase
-        .from('policies')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (!error) {
-        setPolicy(data);
-      }
+      const active = await getActivePolicyForUser(user.id);
+      setPolicy(active);
     } catch (err) {
       console.error('Error:', err);
     } finally {
