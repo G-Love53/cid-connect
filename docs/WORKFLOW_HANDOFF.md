@@ -60,6 +60,7 @@ If any required handoff item is missing, implementation pauses until the patch i
 | Bind-token onboarding (validate / redeem / onboarding flag) | `reference/docs/BIND_TOKEN_SMOKE_TEST.md` |
 | Full app E2E (admin, quotes, webhooks, etc.) | `reference/cid-connect-famous/E2E_SMOKE_TEST.md` |
 | Staging quote → bind → policy → Connect | `docs/STAGING_INTEGRATION_TEST_PLAN_DRAFT.md` |
+| **CID-PDF-API `/api/connect`** (health, profile, chat) — bash + curl | **`pdf-backend/scripts/smoke-connect-api.sh`** (requires `CID_API_URL`, `TEST_EMAIL`; optional `TEST_USER_ID`) |
 
 `redeem-bind-token` uses **`SUPABASE_URL`** + **`SUPABASE_SERVICE_ROLE_KEY`** (see `reference/functions/redeem-bind-token/index.ts` and `docs/DEPLOY.md`). Do not document **`database_*`** names for that function.
 
@@ -77,6 +78,22 @@ Git is the source of truth. If documentation or chat uses a different label, map
 | `redeem-bind-token` secrets | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | ad-hoc `database_*` names |
 
 User-facing labels for redeemed tokens use **Used**; internal status values may still be `'redeemed'` for compatibility. Both map to **`used_at`** in the database.
+
+---
+
+## CID Connect ↔ cid-postgres (API bridge — flow)
+
+End-to-end flow when the **Connect** build includes **`VITE_CID_API_URL`** (e.g. Netlify) and **CID-PDF-API** is deployed on Render:
+
+1. **User** signs in with **Famous** (`VITE_SUPABASE_URL` + anon key in the browser).
+2. **Connect** calls **`${VITE_CID_API_URL}/api/connect/*`** from **`src/lib/connectApi.ts`**, sending **`X-User-Email`** (session email, required) and **`X-User-Id`** (Supabase user UUID, optional).
+3. **CID-PDF-API** **`connectAuthMiddleware`** resolves **`clients`** in **Render Postgres** (`DATABASE_URL`) by **`famous_user_id`** or **`primary_email`**, then attaches **`client_id`** for downstream queries.
+4. **Handlers** in **`src/routes/connectApi.js`** read/write **cid-postgres** tables (`policies`, `quotes`, `documents`, `claims`, `coi_requests`, `carrier_knowledge`, etc.). **Chat** uses **`src/services/connectChatService.js`** (Claude + Gemini; keys on Render only).
+5. **Platform** data (**`profiles`**, **`app_settings`**, admin, **`chat_messages`** persistence, **`bindQuote`** inserts to Famous) remains on **Famous** unless separately migrated.
+
+**Do not** run **cid-postgres** migrations in the Famous SQL editor. **External** DB URL for `psql` / CI: **`pdf-backend`** Render Postgres dashboard (not the internal URL from the web service env if you connect from your laptop).
+
+**Docs:** **`docs/ARCHITECTURE.md`** (bridge vs legacy), **`docs/CONNECT_API_BRIDGE_STEP1_AUDIT.md`**, **`docs/DEPLOY.md`**.
 
 ---
 

@@ -2,8 +2,10 @@
 
 **Purpose:** Map every `supabase.from()` / storage / realtime / edge invocation so Step 2 API endpoints match real usage.  
 **Repo:** `cid-connect` (production app code: `src/`).  
-**Date:** 2026-04-09  
+**Date:** 2026-04-09 · **Status update:** Steps **2–5** implemented (see §8); **Step 6** = your quote/bind/policy E2E validation.  
 **Scope note:** `reference/functions/*` is deployable Edge Function source (e.g. `redeem-bind-token`); listed separately from the SPA.
+
+**Bridge mode:** When **`VITE_CID_API_URL`** is set, many rows below are **not** queried via `supabase.from` for insured flows — see **`src/lib/connectApi.ts`** and **`src/api.ts`** branches. This document remains the historical inventory for **legacy mode** and for **tables still on Famous** (profiles, admin, etc.).
 
 ---
 
@@ -13,7 +15,8 @@
 |----------|---------------------------|
 | **Insurance-domain (primary MOVE to cid-pdf-api)** | `policies`, `quotes`, `documents`, `claims`, `coi_requests`, `carriers`, `carrier_resources`, `chat_messages`, `document_downloads`, `payment_method_requests`, `renewal_preferences`, `renewal_bindings`, `renewal_notifications` |
 | **Platform / admin (typically STAY in Famous)** | `profiles`, `app_settings`, `admin_audit_log`, `email_templates`, `webhook_events`, `webhook_rules`, `inbound_webhook_events`, `retry_queue`, `policy_bind_tokens` |
-| **Not used in Connect today** | `submissions`, `carrier_messages`, `clients`, `invoices` — no `.from()` in `src/` |
+| **Not used via Supabase `.from()` in `src/`** | `submissions`, `carrier_messages`, `invoices` — pipeline tables on Render |
+| **Clients / cid-postgres identity** | **`clients`** is not read directly in the SPA; identity for **`/api/connect`** is resolved **on CID-PDF-API** using headers + **`clients`** in **cid-postgres** |
 
 **Storage buckets:** `policy-documents`, `cid-uploads`, `ai-training-docs` (plus `carrier_resources` metadata in DB).
 
@@ -60,15 +63,15 @@ Legend: **R** = read, **W** = write/update/delete, **Primary file** = main calle
 | `AuthContext.tsx` | `profiles` | W (insert on signup) |
 | `BindTokenRedemption.tsx` | `profiles` | R |
 | `PostBindOnboarding.tsx` | `profiles` | W (`onboarding_completed`) |
-| `PolicyVault.tsx` | `policies` | R — active policy, `user_id` |
-| `PolicyTimeline.tsx` | `policies`, `quotes`, `claims`, `coi_requests` | R — timeline |
-| `QuoteHistory.tsx` | `quotes` | R — `user_id` |
-| `DownloadDocuments.tsx` | `policies`, `document_downloads` | R + W |
-| `UpdatePaymentMethod.tsx` | `policies`, `payment_method_requests` | R + W |
-| `CoverageChat.tsx` | `policies`, `chat_messages` | R + W; `supabase.functions.invoke('coverage-chat')` |
-| `RenewalReminders.tsx` | `policies`, `renewal_preferences` | R + W |
-| `RenewalComparison.tsx` | `policies`, `renewal_bindings` | R |
-| `AmICoveredChat.tsx` | — | `invoke('coverage-chat')` only |
+| `PolicyVault.tsx` | — | **R via `getActivePolicyForUser` → `api.ts`** (connect or Supabase) |
+| `PolicyTimeline.tsx` | — | **R via `getPolicyById`, `getUserQuotes`, `getClaimsForPolicy`, `getCoiRequestsForPolicy`** |
+| `QuoteHistory.tsx` | — | **R via `getUserQuotes`** |
+| `DownloadDocuments.tsx` | `document_downloads` | **Policy:** `getActivePolicyForUser`; **docs:** `getUserDocuments`; **W** download audit |
+| `UpdatePaymentMethod.tsx` | `payment_method_requests` | **Policy:** `getActivePolicyForUser`; **W** Supabase |
+| `CoverageChat.tsx` | `chat_messages` | **Policy/summary:** `api.ts`; **chat:** `POST /api/connect/chat` if `VITE_CID_API_URL`, else `coverage-chat` Edge |
+| `RenewalReminders.tsx` | `renewal_preferences` | **Policy:** `getActivePolicyForUser`; **W** Supabase |
+| `RenewalComparison.tsx` | `renewal_bindings` | **Policy:** `getActivePolicyForUser`; **R** `renewal_bindings` Supabase |
+| `AmICoveredChat.tsx` | — | **`POST /api/connect/chat`** or `invoke('coverage-chat')` |
 | `AdminTrainAI.tsx` | `carrier_resources`; storage `ai-training-docs` | R + upload + insert |
 | `AdminOverviewLive.tsx` | — | `supabase.channel('admin-overview-realtime')` (no `.from` in snippet) |
 
@@ -229,10 +232,28 @@ Minimal set to replace **direct** insurance reads/writes in Connect:
 - [x] Storage buckets listed
 - [x] Edge invokes listed
 - [x] Gaps: `submissions`, `clients`, `carrier_messages`, `invoices` not in Connect — add to API only if/when product reads them
-- [ ] **Step 2:** Confirm `cid-postgres` column names vs `Policy` types in `src/types/index.ts`
+- [x] **Step 2:** **`/api/connect`** on **`pdf-backend`** — `connectApi.js`, `connectAuth.js`, migration **`007_connect_api.sql`** on Render **cid-postgres**
+- [x] **Step 3:** KB seed — **`008_kb_v0_seed.sql`** (optional **`carrier_knowledge`** rows)
+- [x] **Step 4:** Connect — **`VITE_CID_API_URL`**, **`src/lib/connectApi.ts`**, **`api.ts`** branches, components wired to helpers
+- [x] **Step 5:** **`POST /api/connect/chat`** — **`connectChatService.js`** (Claude + Gemini); Connect **`CoverageChat`** / **`AmICoveredChat`**
+- [ ] **Step 6:** Full **quote → bind → policy** journey against **cid-postgres** + Connect (see **`docs/STAGING_INTEGRATION_TEST_PLAN_DRAFT.md`**)
 
 ---
 
-## 7. Next action
+## 7. Implementation pointers (canonical)
 
-**Step 2 (implemented in `pdf-backend`):** `src/routes/connectApi.js` + `src/middleware/connectAuth.js`, mounted at **`/api/connect`**. Run **`pdf-backend/migrations/007_connect_api.sql`** on Render. See **`pdf-backend/README.md`** (CID Connect API).
+| Piece | Location |
+|--------|----------|
+| API routes | **`pdf-backend`** `src/routes/connectApi.js` |
+| Auth headers | **`X-User-Email`**, **`X-User-Id`** — `src/middleware/connectAuth.js` |
+| Migrations | **`pdf-backend/migrations/007_connect_api.sql`**, **`008_kb_v0_seed.sql`** |
+| Connect client | **`cid-connect`** `src/lib/connectApi.ts` |
+| Smoke script | **`pdf-backend/scripts/smoke-connect-api.sh`** |
+| Deploy env | **`cid-connect`** `docs/DEPLOY.md` — **`VITE_CID_API_URL`**; Render **`ANTHROPIC_API_KEY`** (chat) |
+
+---
+
+## 8. Next action (ongoing)
+
+- **Operational:** Run **`scripts/smoke-connect-api.sh`** after deploys (`CID_API_URL`, `TEST_EMAIL`).
+- **Product / QA:** Complete **Step 6** — confirm pipeline writes policies clients can see via **`/api/connect`** (email in **`clients`**, rows in **cid-postgres** **`policies`**). **`bindQuote`** still targets **Famous** until/unless replaced by an API bind path.

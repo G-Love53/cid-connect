@@ -22,7 +22,7 @@
 | **cid-connect** (Vite SPA) | Insured-facing app; policy vault, documents, COI, etc. | Uses `VITE_SUPABASE_URL` + **anon** key only |
 | **pdf-backend** (CID-PDF-API on Render) | Submissions, operator UI, S4–S6, bind, webhooks | Server secrets (e.g. service role) stay server-side |
 | **Segment Netlify** (e.g. Bar/Roofer/Plumber landings) | `POST /submit-quote` to **same** API host | Not a second operator stack |
-| **Database** | **Connect** reads **`policies`** (and much app data) from the **Famous** Supabase project; **CID-PDF-API** uses **Render Postgres** (`DATABASE_URL`) for submissions, quotes, **`carrier_messages`**, operator queue | See **`docs/ARCHITECTURE.md`** — two stores; don’t run pipeline SQL in the wrong project |
+| **Database** | **Famous:** auth, **`profiles`**, many app tables. **Render `cid-postgres`:** canonical pipeline + **insured** data for **`/api/connect`** when Connect has **`VITE_CID_API_URL`**. | See **`docs/ARCHITECTURE.md`** — bridge mode vs legacy; don’t run pipeline SQL in the wrong project |
 
 **Staging URLs:** _[fill: Connect base URL, CID-PDF-API host, segment Netlify URL]_
 
@@ -39,17 +39,18 @@
 
 ---
 
-## 4. Source of truth for “active policy” in Connect (resolved for current code)
+## 4. Source of truth for “active policy” in Connect
 
 | Layer | What we think | Validate in staging |
 |-------|----------------|---------------------|
-| **Target architecture** | Canonical insurance data in **`cid-postgres`**; reads via backend service — see **`docs/ARCHITECTURE.md`** | Long-term alignment with handoff |
-| **Current app behavior (code)** | **Connect reads active policy data from the Famous Supabase project via `supabase.from('policies')`** (and related helpers in **`src/api.ts`**, **`PolicyVault`**, **`CoverageChat`**, etc.), with **`user_id`** = session user and typically **`status = 'active'`**, subject to RLS | Confirm row exists for test user; network tab shows Supabase REST, not `cid-pdf-api` for that read |
-| **Segment backends** | **`app_settings`** `segment_backend_*` URLs — used for **`fetch`** to CID-PDF-API for COI, claims, renewals, coverage analysis, etc. | Not a substitute for verifying where **`policies`** rows are read |
+| **Target architecture** | Canonical insurance rows in **`cid-postgres`**; Connect reads via **CID-PDF-API** **`/api/connect`** when **`VITE_CID_API_URL`** is set — see **`docs/ARCHITECTURE.md`** | **Network:** `GET` to **`{VITE_CID_API_URL}/api/connect/policies`** (or profile) with identity headers |
+| **Shipped bridge mode (when env set)** | **`getUserPolicies`, `getActivePolicyForUser`, etc.** in **`src/api.ts`** call **`connectApi`** → **`GET /api/connect/policies`**. Policy vault / timeline / quote history use those helpers. | Test user email must exist in **`clients.primary_email`**; policy rows in **cid-postgres** **`policies`** for that **`client_id`** |
+| **Legacy mode** (`VITE_CID_API_URL` unset) | Same helpers fall back to **`supabase.from('policies')`** (RLS). | **Network:** Supabase REST to **`policies`** |
+| **Segment backends** | **`app_settings`** `segment_backend_*` — used for **`fetch`** to CID-PDF-API routes (COI, claims, etc.) **in addition** to the universal **`/api/connect`** base URL |
 
-**One sentence:** *Today, Connect lists “active policy” from **Supabase `policies`** (browser + anon key + RLS); the “API-only bridge” is the **target**, not the only path in the shipped client.*
+**One sentence:** *With **`VITE_CID_API_URL`** deployed, Connect’s insured policy list is driven by **`cid-postgres`** through **`/api/connect`**; without it, the app still uses **Famous `policies`** for those reads.*
 
-**Gap to track:** When policy reads move to **`cid-pdf-api`** (or a BFF), update **`docs/ARCHITECTURE.md`** and re-run this checklist against the new API.
+**E2E gap to validate:** **Bind** may still write **`policies`** to **Famous** only (**`bindQuote`** in **`src/api.ts`**). Confirm your pipeline creates a **cid-postgres** policy + **`clients`** row for the same insured user before expecting the Connect bridge to show a policy.
 
 ---
 
@@ -64,8 +65,8 @@ Execute in order unless a step is marked parallel.
 | 3 | Quote → bind (staging) | Operator access; mock carrier path enabled | Complete bind steps per S6 runbook | Bind completes; policy/bind artifacts as expected | Stuck / wrong segment |
 | 4 | Policy row | Bind succeeded | In DB or operator: `policies` (or canonical table) has row for test user | Row present; `status` matches expectation (e.g. `active`) | Missing / wrong `user_id` |
 | 5 | Connect session | Test user can sign in | Open Connect staging; same Famous user as bound policy | Session `user.id` matches policy `user_id` | Wrong user / no session |
-| 6 | Active policy UI | Step 5 pass | Policy vault / home shows active policy | UI shows policy summary | Empty / error toast |
-| 7 | Documents / COI (optional) | Step 6 pass | Open documents or COI flow | Loads without error; data matches policy | 403 / empty |
+| 6 | Active policy UI | Step 5 pass | Policy vault / home shows active policy | UI shows policy summary (bridge: data from **cid-postgres** via API) | Empty / error toast |
+| 7 | Documents / COI (optional) | Step 6 pass | Open documents or COI flow | Loads without error; data matches policy | 403 / empty / 404 client |
 
 ---
 
@@ -90,9 +91,9 @@ Execute in order unless a step is marked parallel.
 ## 8. Acceptance criteria (summary)
 
 1. Staging path completes **quote → bind → policy** without production carrier contract.
-2. **Connect** shows an **active** policy for the **same** Famous user as the bind (validate against **Supabase `policies`** reads until API-only policy list ships).
-3. **Gaps** between target architecture and shipped code are **documented** in **`docs/ARCHITECTURE.md`** § “Data bridge — current shipped behavior” — tests must not assume API-only reads without verifying network + code.
-4. This document becomes an **executable** checklist with **pass/fail** per step and **filled URLs/IDs**.
+2. **Connect** shows an **active** policy for the **same** user as the bind (validate **network**: **`/api/connect`** if **`VITE_CID_API_URL`** is set, else **Supabase `policies`**).
+3. **Architecture** for bridge vs legacy is **`docs/ARCHITECTURE.md`** § “Data bridge — shipped behavior” — tests must not assume API-only reads without verifying **env + network**.
+4. This document stays an **executable** checklist with **pass/fail** per step and **filled URLs/IDs**.
 
 ---
 
@@ -101,7 +102,7 @@ Execute in order unless a step is marked parallel.
 - `docs/WORKFLOW_HANDOFF.md` — includes Gmail poller / Render DB vs Famous notes
 - `docs/ARCHITECTURE.md` — target vs shipped data bridge
 - `reference/docs/BIND_TOKEN_SMOKE_TEST.md`
-- Connect policy reads: `src/api.ts` (`getUserPolicies`), `src/components/policy/PolicyVault.tsx`, `src/components/services/CoverageChat.tsx`
+- Connect policy reads: `src/api.ts` (`getUserPolicies`, `getActivePolicyForUser`), `src/lib/connectApi.ts`, `src/components/policy/PolicyVault.tsx`, `src/components/services/CoverageChat.tsx`
 
 ---
 

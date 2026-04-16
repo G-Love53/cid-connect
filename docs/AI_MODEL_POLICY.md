@@ -2,7 +2,14 @@
 
 ## Coverage Chat Architecture
 
-Browser -> Famous `coverage-chat` -> Render `/api/coverage-chat/inference` -> Claude/Gemini
+**Path A — Connect bridge (when `VITE_CID_API_URL` is set in the built app)**  
+Browser → **`POST {VITE_CID_API_URL}/api/connect/chat`** (CID-PDF-API on Render) → **`connectChatService.js`** → Claude primary, Gemini fallback. Identity headers: **`X-User-Email`**, **`X-User-Id`**. No provider keys in the browser.
+
+**Path B — Legacy / Edge**  
+Browser → Famous **`coverage-chat`** Edge Function → (optional) Render inference route as in original wiring → Claude/Gemini.
+
+**Path C — Am I Covered / Policy Chat**  
+Same split: **`CoverageChat.tsx`** and **`AmICoveredChat.tsx`** use Path A when **`isConnectInsuranceApiEnabled()`**, else Path B.
 
 ## Model Hierarchy
 
@@ -18,7 +25,8 @@ Browser -> Famous `coverage-chat` -> Render `/api/coverage-chat/inference` -> Cl
 
 ## Canonical Sources
 
-- `reference/functions/coverage-chat/index.ts`
+- **`pdf-backend`** `src/services/connectChatService.js`, `src/routes/connectApi.js` (`POST /chat`) — bridge mode
+- `reference/functions/coverage-chat/index.ts` — legacy Edge
 - `reference/cid-pdf-api/coverage-inference-contract.md`
 - `reference/migrations/002_chat_model_audit_log.sql`
 

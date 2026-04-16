@@ -26,7 +26,7 @@ Set these wherever the **built** app runs (Netlify **Site settings → Environme
 | **`VITE_SUPABASE_URL`** | Yes | Famous / DatabasePad project URL (browser-safe). |
 | **`VITE_SUPABASE_ANON_KEY`** | Yes | **Anon** key only — never the service role. |
 | **`VITE_SITE_URL`** | Optional | Canonical public origin for password reset / magic links (e.g. `https://your-connect.netlify.app`). If unset, the browser origin is used; Auth redirect allowlist must still match. |
-| **`VITE_CID_API_URL`** | Optional | Reserved for universal CID-PDF-API base URL if the app is wired to use it; **segment actions** today resolve via **`app_settings`** (see below). |
+| **`VITE_CID_API_URL`** | Optional but **recommended** for production | Base URL of **CID-PDF-API** (no trailing slash), e.g. `https://cid-pdf-api.onrender.com`. When set, **insured** policy/quote/doc/claim/COI/KB/chat traffic uses **`/api/connect/*`** on that host (**`X-User-Email`** / **`X-User-Id`**). **Segment actions** (COI/claim `fetch` to segment backends) still resolve via **`app_settings`** `segment_backend_*` (see below). |
 
 **Security:** If a key name contains `SERVICE_ROLE`, `SECRET`, or provider tokens, it must **not** appear in Connect env or any client bundle. See **`docs/ARCHITECTURE.md`**.
 
@@ -59,7 +59,7 @@ GitHub Actions runs a **build** on push to **`main`** (sanity check). Failing CI
 The host **only serves** built HTML/JS/CSS. It does **not** host the database or CID-PDF-API.
 
 1. Connect the **GitHub repo** that holds this app (e.g. **`main`** branch).
-2. Set **Environment variables** to match local **`.env`** (**`VITE_SUPABASE_URL`**, **`VITE_SUPABASE_ANON_KEY`**, and optional **`VITE_SITE_URL`**).
+2. Set **Environment variables** to match local **`.env`** (**`VITE_SUPABASE_URL`**, **`VITE_SUPABASE_ANON_KEY`**, optional **`VITE_SITE_URL`**, and **`VITE_CID_API_URL`** when using the **cid-postgres** bridge).
 3. **`netlify.toml`** in this repo defines **`npm run build`**, publish **`dist`**, **Node 20**, SPA **`/*` → `/index.html`**, and cache headers via **`public/_headers`**.
 
 After first deploy, configure **Auth** (Site URL, redirect allowlist, optional SMTP): **`docs/database_AUTH_CONFIG.md`**.

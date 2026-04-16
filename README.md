@@ -2,7 +2,7 @@
 
 Commercial insurance platform with quoting, policy management, claims, COI requests, and admin dashboard.
 
-**Next dev:** read **`docs/ARCHITECTURE.md`** (target vs **shipped** data bridge), **`docs/AI_MODEL_POLICY.md`**, and **`docs/WORKFLOW_HANDOFF.md`**. For staging **quote → bind → policy → Connect**, use **`docs/STAGING_INTEGRATION_TEST_PLAN_DRAFT.md`**. For **API bridge Step 1 (Supabase audit)**, see **`docs/CONNECT_API_BRIDGE_STEP1_AUDIT.md`**.
+**Next dev:** read **`docs/ARCHITECTURE.md`** (bridge mode vs legacy, **`VITE_CID_API_URL`**), **`docs/AI_MODEL_POLICY.md`**, and **`docs/WORKFLOW_HANDOFF.md`** (includes API bridge flow + **`pdf-backend` smoke script**). For staging **quote → bind → policy → Connect**, use **`docs/STAGING_INTEGRATION_TEST_PLAN_DRAFT.md`**. For the **Connect API bridge** (audit + Steps 2–6 status), see **`docs/CONNECT_API_BRIDGE_STEP1_AUDIT.md`**.
 
 ## Source of truth & workflow (default)
 
@@ -16,7 +16,7 @@ Commercial insurance platform with quoting, policy management, claims, COI reque
 
 Optional: **Netlify** = **static URL + built SPA/forms only** (does not host DB). See **`docs/DEPLOY.md`** and **`docs/ARCHITECTURE.md`**. Not required for local dev.
 
-**Secrets (local):** `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` in **`.env`**.
+**Secrets / config (local):** `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` in **`.env`**; optional **`VITE_CID_API_URL`** for **cid-postgres** via **`/api/connect`** (see **`docs/DEPLOY.md`**).
 
 ## Tech Stack
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { User, Mail, Shield, LogOut, ChevronRight, Bell, Lock, HelpCircle, FileText } from 'lucide-react';
+import { User, Mail, Shield, LogOut, ChevronRight, Bell, Lock, HelpCircle, FileText, Smartphone } from 'lucide-react';
+import { InstallCidConnectCard } from '@/components/InstallCidConnectCard';
 
 const ProfileScreen: React.FC = () => {
   const { user, signOut } = useAuth();
@@ -94,6 +95,20 @@ const ProfileScreen: React.FC = () => {
               <ChevronRight className="w-5 h-5 text-gray-400" />
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* Install CID Connect (PWA) */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-4 p-4 flex items-start gap-3">
+        <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+          <Smartphone className="w-5 h-5 text-[#1B3A5F]" />
+        </div>
+        <div className="flex-1">
+          <h2 className="font-semibold text-gray-800 mb-1">Use CID Connect like an app</h2>
+          <p className="text-sm text-gray-500 mb-3">
+            Install CID Connect to your home screen for one‑tap access on iPhone, Android, or desktop.
+          </p>
+          <InstallCidConnectCard />
         </div>
       </div>
 
