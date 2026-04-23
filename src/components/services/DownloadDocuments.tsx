@@ -35,6 +35,7 @@ import {
   getCarrierResourceDownloadUrl,
   downloadCarrierResource
 } from '@/api';
+import { isConnectInsuranceApiEnabled } from '@/lib/connectApi';
 
 interface DownloadDocumentsProps {
   onBack: () => void;
@@ -107,20 +108,29 @@ const DownloadDocuments: React.FC<DownloadDocumentsProps> = ({ onBack }) => {
     setDownloading(doc.id);
     
     try {
-      // Generate signed URL and trigger download
+      // Connect API docs are downloaded by document id (R2 presign redirect via backend).
+      if (isConnectInsuranceApiEnabled()) {
+        const base = (import.meta.env.VITE_CID_API_URL as string | undefined)?.replace(/\/$/, '');
+        if (!base) throw new Error('Missing VITE_CID_API_URL');
+        const url = `${base}/api/documents/${encodeURIComponent(doc.id)}/download`;
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = doc.name;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        toast({
+          title: 'Download Started',
+          description: `${doc.name} is being downloaded`
+        });
+        return;
+      }
+
       const success = await downloadDocumentFile(doc.file_path, doc.name);
       
       if (success) {
-        // Log download activity
-        await supabase
-          .from('document_downloads')
-          .insert({
-            user_id: user?.id,
-            policy_id: doc.policy_id,
-            document_type: doc.type,
-            document_name: doc.name
-          });
-
         toast({
           title: 'Download Started',
           description: `${doc.name} is being downloaded`
@@ -143,6 +153,18 @@ const DownloadDocuments: React.FC<DownloadDocumentsProps> = ({ onBack }) => {
 
   const handleViewDocument = async (doc: Document) => {
     try {
+      if (isConnectInsuranceApiEnabled()) {
+        const base = (import.meta.env.VITE_CID_API_URL as string | undefined)?.replace(/\/$/, '');
+        if (!base) throw new Error('Missing VITE_CID_API_URL');
+        const url = `${base}/api/documents/${encodeURIComponent(doc.id)}/download`;
+        window.open(url, '_blank');
+        toast({
+          title: 'Opening Document',
+          description: `Opening ${doc.name} in a new tab...`
+        });
+        return;
+      }
+
       // Generate signed URL for viewing
       const signedUrl = await getDownloadUrl(doc.file_path);
       

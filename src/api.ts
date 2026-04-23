@@ -416,9 +416,22 @@ export async function getUserPolicies(userId: string): Promise<Policy[]> {
 /** Most recent active policy for the insured (Connect API or Supabase). */
 export async function getActivePolicyForUser(userId: string): Promise<Policy | null> {
     const policies = await getUserPolicies(userId);
-    const active = policies.filter((p) => p.status === 'active');
-    active.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    return active[0] ?? null;
+    if (!policies.length) return null;
+
+    const normalized = policies
+        .filter((p) => p && p.created_at)
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    const active = normalized.filter((p) => String(p.status || '').toLowerCase() === 'active');
+    if (active.length) return active[0];
+
+    const boundLike = normalized.filter((p) =>
+        ['bound', 'signed', 'issued'].includes(String(p.status || '').toLowerCase()),
+    );
+    if (boundLike.length) return boundLike[0];
+
+    // Last-resort fallback so users still see their most recent policy shell.
+    return normalized[0] ?? null;
 }
 
 /**

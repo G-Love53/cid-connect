@@ -1,9 +1,14 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { User, Mail, Shield, LogOut, ChevronRight, Bell, Lock, HelpCircle, FileText, Smartphone } from 'lucide-react';
 import { InstallCidConnectCard } from '@/components/InstallCidConnectCard';
+import { toast } from '@/components/ui/use-toast';
 
-const ProfileScreen: React.FC = () => {
+interface ProfileScreenProps {
+  onOpenDocuments?: () => void;
+}
+
+const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenDocuments }) => {
   const { user, signOut } = useAuth();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
@@ -11,12 +16,55 @@ const ProfileScreen: React.FC = () => {
     await signOut();
   };
 
-  const menuItems = [
-    { icon: Bell, label: 'Notifications', description: 'Manage notification preferences' },
-    { icon: Lock, label: 'Security', description: 'Password and authentication' },
-    { icon: FileText, label: 'Documents', description: 'View policy documents' },
-    { icon: HelpCircle, label: 'Help & Support', description: 'Get help with the app' },
-  ];
+  const menuItems = useMemo(
+    () => [
+      {
+        icon: Bell,
+        label: 'Notifications',
+        description: 'Manage notification preferences',
+        onClick: () =>
+          toast({
+            title: 'Notifications',
+            description: 'Notification preferences are coming soon.',
+          }),
+      },
+      {
+        icon: Lock,
+        label: 'Security',
+        description: 'Password and authentication',
+        onClick: () =>
+          toast({
+            title: 'Security',
+            description: 'Use Forgot Password on sign-in to reset credentials.',
+          }),
+      },
+      {
+        icon: FileText,
+        label: 'Documents',
+        description: 'View policy documents',
+        onClick: () => {
+          if (onOpenDocuments) {
+            onOpenDocuments();
+            return;
+          }
+          toast({
+            title: 'Documents',
+            description: 'Documents screen is currently unavailable.',
+          });
+        },
+      },
+      {
+        icon: HelpCircle,
+        label: 'Help & Support',
+        description: 'Get help with the app',
+        onClick: () => {
+          window.location.href =
+            'mailto:support@commercialinsurance-direct.com?subject=CID%20Connect%20Support';
+        },
+      },
+    ],
+    [onOpenDocuments],
+  );
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -78,10 +126,7 @@ const ProfileScreen: React.FC = () => {
             <button
               key={index}
               className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-              onClick={() => {
-                // Placeholder for menu item actions
-                console.log(`Clicked: ${item.label}`);
-              }}
+              onClick={item.onClick}
             >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center">

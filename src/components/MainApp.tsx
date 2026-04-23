@@ -294,7 +294,7 @@ const MainApp: React.FC = () => {
           />
         );
       case 'profile':
-        return <ProfileScreen />;
+        return <ProfileScreen onOpenDocuments={handleDownloadDocuments} />;
       default:
         return (
           <PolicyVault
