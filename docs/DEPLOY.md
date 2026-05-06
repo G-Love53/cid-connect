@@ -114,6 +114,17 @@ Bind-token onboarding is **segment-agnostic**: it links by **`policy_id`**. It w
 
 ---
 
+## Outbound email & deliverability (campaigns — RSS)
+
+**Connect** does not send segment **acquisition** campaigns; those run on your ESP (e.g. Instantly) from **segment vertical domains**. For **reliable** inbox placement and **audit-ready** DNS monitoring:
+
+- Add each **sending domain** to [Google Postmaster Tools](https://postmaster.google.com/) and verify ownership.
+- Keep **SPF / DKIM / DMARC** on those domains aligned with the **From** identity your ESP uses (same guidance as operator `quotes@` mail — see **`pdf-backend/docs/Deploy_Guide.md`** → *Email infrastructure* and *Postmaster Tools*).
+
+CTAs in campaigns should still point at **canonical** segment intake + **CID Connect** URLs (see product marketing handoff), not undocumented hosts.
+
+---
+
 ## See also
 
 | Doc | Use |
@@ -122,3 +133,4 @@ Bind-token onboarding is **segment-agnostic**: it links by **`policy_id`**. It w
 | **`docs/database_AUTH_CONFIG.md`** | Site URL, redirect allowlist, optional SMTP (Management API examples). |
 | **`docs/WORKFLOW_HANDOFF.md`** | Famous ↔ Cursor handoff, smoke runbooks, Gmail/poller DB notes. |
 | **`docs/STAGING_INTEGRATION_TEST_PLAN_DRAFT.md`** | Staging **quote → bind → policy → Connect** checklist. |
+| **`pdf-backend/docs/Deploy_Guide.md`** (sibling repo) | Postmaster, Gmail auth, **S5** client email checks, GitHub heartbeat vs **CID-PDF-API** `/healthz`. |

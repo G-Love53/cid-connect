@@ -257,3 +257,11 @@ Minimal set to replace **direct** insurance reads/writes in Connect:
 
 - **Operational:** Run **`scripts/smoke-connect-api.sh`** after deploys (`CID_API_URL`, `TEST_EMAIL`).
 - **Product / QA:** Complete **Step 6** — confirm pipeline writes policies clients can see via **`/api/connect`** (email in **`clients`**, rows in **cid-postgres** **`policies`**). **`bindQuote`** still targets **Famous** until/unless replaced by an API bind path.
+
+---
+
+## 9. Out of scope — outbound acquisition email (audit boundary)
+
+This audit covers **Connect SPA** ↔ **Famous** ↔ **`/api/connect`** on **CID-PDF-API**. It does **not** catalog **ESP / Instantly** campaign templates, list hygiene, or **Google Postmaster Tools** configuration.
+
+**RSS pointer:** Campaign **sending domains**, **SPF/DKIM/DMARC**, Postmaster verification, and **S5 client packet email** (insured quote delivery from the operator stack) are documented in **`pdf-backend/docs/Deploy_Guide.md`** and **`pdf-backend/docs/OPERATOR_DAILY_RUNBOOK.md`**. **`cid-connect/docs/DEPLOY.md`** links Postmaster expectations for teams shipping Connect only.
