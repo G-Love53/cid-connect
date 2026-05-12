@@ -8,6 +8,8 @@ export interface User {
 export interface Policy {
   id: string;
   user_id: string;
+  /** cid-postgres quote id (S6 bind); optional for legacy Famous-only rows */
+  quote_id?: string | null;
   policy_number: string;
   segment: string;
   business_name: string;

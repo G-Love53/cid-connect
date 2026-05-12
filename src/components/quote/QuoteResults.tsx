@@ -2,21 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { QuoteAnalysisResult, Quote, CarrierOption } from '@/types';
 import { getQuoteDetails, downloadQuotePdf, emailQuotePdf } from '@/api';
 import { supabase } from '@/lib/supabase';
-import { CheckCircle, AlertCircle, XCircle, DollarSign, FileText, Shield, Hash, Loader2, Building2, Star, Download, Mail } from 'lucide-react';
+import { CheckCircle, AlertCircle, XCircle, DollarSign, FileText, Shield, Hash, Loader2, Building2, Star, Download, Mail, ExternalLink } from 'lucide-react';
+import { quoteIntakeUrlForSegment } from '@/constants/segmentQuoteRoutes';
 
 interface QuoteResultsProps {
   result?: QuoteAnalysisResult;
   quoteId?: string;
-  onBind: (carrierId?: string | null, carrierName?: string) => void;
-  binding: boolean;
 }
 
-const QuoteResults: React.FC<QuoteResultsProps> = ({ result: propResult, quoteId, onBind, binding }) => {
+const QuoteResults: React.FC<QuoteResultsProps> = ({ result: propResult, quoteId }) => {
   const [liveQuote, setLiveQuote] = useState<Quote | null>(null);
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState('');
   const [selectedCarrierId, setSelectedCarrierId] = useState<string | null>(null);
-  const [selectedCarrierName, setSelectedCarrierName] = useState<string | undefined>(undefined);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [emailingPdf, setEmailingPdf] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
@@ -73,7 +71,6 @@ const QuoteResults: React.FC<QuoteResultsProps> = ({ result: propResult, quoteId
   useEffect(() => {
     if (propResult?.carrierOptions && propResult.carrierOptions.length > 0 && !selectedCarrierId) {
       setSelectedCarrierId(propResult.carrierId || propResult.carrierOptions[0].id);
-      setSelectedCarrierName(propResult.carrier || propResult.carrierOptions[0].name);
     }
   }, [propResult]);
 
@@ -133,7 +130,11 @@ const QuoteResults: React.FC<QuoteResultsProps> = ({ result: propResult, quoteId
 
   const eligibilityStyles = getEligibilityStyles(displayData.eligibility);
   const carrierOptions = displayData.carrierOptions;
-  const activeCarrier = carrierOptions.find(c => c.id === selectedCarrierId) || null;
+  const intakeUrl = quoteIntakeUrlForSegment(displayData.segment);
+
+  const openSegmentIntake = () => {
+    window.location.assign(intakeUrl);
+  };
 
   return (
     <div className="animate-fade-in">
@@ -189,11 +190,21 @@ const QuoteResults: React.FC<QuoteResultsProps> = ({ result: propResult, quoteId
         )}
 
         <div className="p-4">
-          <button onClick={() => onBind(selectedCarrierId, selectedCarrierName)} disabled={binding || displayData.eligibility === 'Declined'}
-            className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all ${displayData.eligibility === 'Declined' ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-[#F7941D] to-[#FDB54E] text-white hover:from-[#E07D0D] hover:to-[#F7941D] shadow-lg hover:shadow-xl active:scale-[0.98]'}`}>
-            {binding ? (<><Loader2 className="w-5 h-5 animate-spin" />Creating Policy...</>) : displayData.eligibility === 'Declined' ? 'Unable to Bind - Declined' : (<><CheckCircle className="w-5 h-5" />{activeCarrier ? `BIND WITH ${activeCarrier.name.toUpperCase()}` : 'BIND NOW'}</>)}
+          <button
+            type="button"
+            onClick={openSegmentIntake}
+            disabled={displayData.eligibility === 'Declined'}
+            className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all ${displayData.eligibility === 'Declined' ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-[#F7941D] to-[#FDB54E] text-white hover:from-[#E07D0D] hover:to-[#F7941D] shadow-lg hover:shadow-xl active:scale-[0.98]'}`}
+          >
+            <ExternalLink className="w-5 h-5" />
+            Get a new quote on our website
           </button>
-          {displayData.eligibility === 'Review Required' && <p className="text-center text-sm text-yellow-600 mt-2">This quote requires underwriter review before binding</p>}
+          <p className="text-center text-sm text-gray-500 mt-2">
+            Policies are issued after you complete intake, e-sign, and underwriting — same path as new business.
+          </p>
+          {displayData.eligibility === 'Review Required' && (
+            <p className="text-center text-sm text-yellow-600 mt-2">This quote may require underwriter review before you can proceed.</p>
+          )}
 
           <button onClick={handleDownloadPdf} disabled={downloadingPdf}
             className="w-full mt-3 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all border-2 border-[#1B3A5F] text-[#1B3A5F] hover:bg-[#1B3A5F] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed">

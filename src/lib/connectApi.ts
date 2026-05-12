@@ -80,12 +80,82 @@ export async function connectPost<T>(path: string, body: unknown): Promise<Conne
   return json as ConnectJsonResult<T>;
 }
 
+/** Single round-trip COI create + optional requirements file (R2 under API). */
+export type ConnectCoiRequestPayload = {
+  policyId: string;
+  holderName?: string;
+  holderAddress?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  email?: string;
+  certificateType?: string;
+  additionalInstructions?: string;
+};
+
+export async function connectPostCoiRequest(
+  body: ConnectCoiRequestPayload,
+  file?: File | null,
+): Promise<ConnectJsonResult<Record<string, unknown>>> {
+  const base = baseUrl();
+  if (!base) {
+    throw new Error("VITE_CID_API_URL is not set");
+  }
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session?.user?.email) {
+    throw new Error("Not signed in");
+  }
+
+  const url = `${base}/api/connect/coi/request`;
+  const headers = new Headers();
+  headers.set("X-User-Email", session.user.email);
+  if (session.user.id) {
+    headers.set("X-User-Id", session.user.id);
+  }
+
+  let res: Response;
+  if (file) {
+    const fd = new FormData();
+    fd.append("policyId", body.policyId);
+    fd.append("holderName", body.holderName ?? "");
+    fd.append("holderAddress", body.holderAddress ?? "");
+    fd.append("city", body.city ?? "");
+    fd.append("state", body.state ?? "");
+    fd.append("zip", body.zip ?? "");
+    fd.append("email", body.email ?? "");
+    fd.append("certificateType", body.certificateType ?? "standard");
+    fd.append("additionalInstructions", body.additionalInstructions ?? "");
+    fd.append("requirements", file, file.name);
+    res = await fetch(url, { method: "POST", headers, body: fd });
+  } else {
+    headers.set("Content-Type", "application/json");
+    res = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+    });
+  }
+
+  const json = (await res.json().catch(() => ({}))) as ConnectJsonResult<unknown>;
+  if (!res.ok) {
+    return {
+      ok: false,
+      error: (json as { error?: string }).error || res.statusText || "Request failed",
+    };
+  }
+  return json as ConnectJsonResult<Record<string, unknown>>;
+}
+
 // --- Map cid-postgres /api/connect payloads → Connect `src/types` shapes ---
 
 export function mapConnectPolicyRow(row: Record<string, unknown>, userId: string): Policy {
   return {
     id: String(row.id),
     user_id: (row.user_id as string) || userId,
+    quote_id: row.quote_id != null ? String(row.quote_id) : null,
     policy_number: String(row.policy_number ?? ""),
     segment: String(row.segment ?? ""),
     business_name: String(row.business_name ?? ""),

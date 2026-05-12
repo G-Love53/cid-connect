@@ -2,7 +2,7 @@
 
 Commercial insurance platform with quoting, policy management, claims, COI requests, and admin dashboard.
 
-**Next dev:** read **`docs/ARCHITECTURE.md`** (bridge mode vs legacy, **`VITE_CID_API_URL`**), **`docs/AI_MODEL_POLICY.md`**, and **`docs/WORKFLOW_HANDOFF.md`** (includes API bridge flow + **`pdf-backend` smoke script**). For staging **quote → bind → policy → Connect**, use **`docs/STAGING_INTEGRATION_TEST_PLAN_DRAFT.md`**. For the **Connect API bridge** (audit + Steps 2–6 status), see **`docs/CONNECT_API_BRIDGE_STEP1_AUDIT.md`**.
+**Next dev:** read **`docs/ARCHITECTURE.md`** (bridge mode vs legacy, **`VITE_CID_API_URL`**, COI multipart + R2 on API), **`docs/AI_MODEL_POLICY.md`**, and **`docs/WORKFLOW_HANDOFF.md`** (includes API bridge flow + **`pdf-backend` smoke script**). For staging **quote → bind → policy → Connect**, use **`docs/STAGING_INTEGRATION_TEST_PLAN_DRAFT.md`**. For the **Connect API bridge** (audit + Steps 2–6 status), see **`docs/CONNECT_API_BRIDGE_STEP1_AUDIT.md`**.
 
 ## Source of truth & workflow (default)
 
@@ -21,10 +21,11 @@ Optional: **Netlify** = **static URL + built SPA/forms only** (does not host DB)
 ## Tech Stack
 
 - **Frontend:** React + TypeScript + Vite + Tailwind CSS + shadcn/ui
-- **Backend:** Supabase (Auth, Database, Edge Functions, Storage, Realtime)
-- **Segment APIs:** Render-hosted backends per segment (Plumber, Roofer, Bar)
-- **Email:** Resend via Edge Functions
-- **AI:** Claude primary + Gemini fallback via Render-proxied inference (`coverage-chat`)
+- **Backend:** Supabase (Auth, Database, Edge Functions, Storage, Realtime) for app shell + legacy insured data when **`VITE_CID_API_URL`** is unset.
+- **Insured data (bridge):** **CID-PDF-API** **`/api/connect/*`** on Render — **cid-postgres** + **R2** for COI artifacts; identity via **`X-User-Email`** / **`X-User-Id`**.
+- **Segment APIs:** Render-hosted **CID-PDF-API** (universal) + **`app_settings`** `segment_backend_*` for paths that still **`fetch`** segment hosts (e.g. claim **`fileClaim`** after **`POST /api/connect/claims`**).
+- **Email:** Resend via Edge Functions for many app notifications; **insured COI delivery** (bridge) uses **Gmail** on **CID-PDF-API** when auto-fulfill + R2 are configured — see **`docs/DEPLOY.md`** / **`pdf-backend/docs/Deploy_Guide.md`**.
+- **AI:** Claude primary + Gemini fallback via **`POST /api/connect/chat`** when **`VITE_CID_API_URL`** is set; otherwise **`coverage-chat`** Edge Function.
 
 ## Getting Started
 

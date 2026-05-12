@@ -24,7 +24,7 @@ import AdminDashboard from './admin/AdminDashboard';
 import AdminTrainAI from './admin/AdminTrainAI';
 import QuoteHistory from './history/QuoteHistory';
 import QuoteComparison from './quote/QuoteComparison';
-import { Policy, Claim, Quote } from '@/types';
+import { Claim, Quote } from '@/types';
 
 
 
@@ -143,16 +143,6 @@ const MainApp: React.FC = () => {
     setActiveTab('policy');
   };
 
-  // Handle successful bind - redirect to Policy Vault
-
-  const handleBindSuccess = (policy: Policy) => {
-    console.log('Policy created successfully:', policy);
-    setSelectedQuoteId(null); // Clear any loaded quote
-    setActiveTab('policy');
-    setServiceView('main');
-  };
-
-
   const renderContent = () => {
     if (activeTab === 'covered') {
       return <AmICoveredChat onBack={handleBackToPolicy} />;
@@ -172,10 +162,7 @@ const MainApp: React.FC = () => {
     if (activeTab === 'quote') {
       const qid = selectedQuoteId ?? undefined;
       return (
-        <QuoteScreen
-          quoteIdFromUrl={qid}
-          onBindSuccess={handleBindSuccess}
-        />
+        <QuoteScreen quoteIdFromUrl={qid} />
       );
     }
 
@@ -338,7 +325,7 @@ const MainApp: React.FC = () => {
         case 'renewal-reminders':
           return 'Renewal Reminders';
         case 'shop-renewal':
-          return 'Shop Renewal';
+          return 'Renew policy';
         case 'admin':
           return 'Admin Dashboard';
         case 'train-ai':

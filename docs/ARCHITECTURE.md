@@ -46,20 +46,21 @@ Connect supports **two modes** for **insured** insurance data (policies, quotes,
 
 ### A. Bridge mode (**`VITE_CID_API_URL` set** — e.g. Netlify + `https://cid-pdf-api.onrender.com`)
 
-- **`src/lib/connectApi.ts`** sends **`GET`/`POST`** to **`${VITE_CID_API_URL}/api/connect/...`** with **`X-User-Email`** and **`X-User-Id`** from the Supabase session.
+- **`src/lib/connectApi.ts`** sends **`GET`/`POST`** to **`${VITE_CID_API_URL}/api/connect/...`** with **`X-User-Email`** and **`X-User-Id`** from the Supabase session. COI create uses **`connectPostCoiRequest`**: **`application/json`** when there is no file, or a single **`multipart/form-data`** round-trip (fields + optional file part **`requirements`**) when the insured attaches exhibit/requirements — no second upload hop.
 - **`src/api.ts`** routes **`getUserPolicies`**, **`getQuoteDetails`**, **`getUserDocuments`**, **`submitClaim`**, **`submitCoiRequest`**, **`getAiSummaryForPolicy`**, and related helpers to the API when **`isConnectInsuranceApiEnabled()`** is true.
 - **UI** components use those helpers (**`PolicyVault`**, **`PolicyTimeline`**, **`QuoteHistory`**, **`DownloadDocuments`**, **`CoverageChat`** policy load, etc.) — no direct **`supabase.from('policies')`** for those flows in bridge mode.
 - **Coverage chat:** **`CoverageChat`** and **`AmICoveredChat`** call **`POST /api/connect/chat`** (Claude primary, Gemini fallback on the server — **`pdf-backend`** `src/services/connectChatService.js`). **`chat_messages`** history may still load/save in Famous when present.
-- **Still Famous / Supabase (browser):** **`profiles`**, **`app_settings`**, **`bindQuote`** (insert policy + update quote in Famous), **`chat_messages`** persistence, admin tables, **`renewal_preferences`** / **`renewal_bindings`** where not migrated, storage buckets, Edge **`coverage-chat`** when **`VITE_CID_API_URL` is unset**.
+- **Still Famous / Supabase (browser):** **`profiles`**, **`app_settings`**, **`bindQuote`** (insert policy + update quote in Famous **unless** **`VITE_SKIP_FAMOUS_BIND_POLICY_WRITE`** is set with the bridge — then policy comes only from **cid-postgres** / S6), **`chat_messages`** persistence, admin tables, **`renewal_preferences`** / **`renewal_bindings`** where not migrated, storage buckets (**`policy-documents`**, claim photos in **`cid-uploads`**, etc.), Edge **`coverage-chat`** when **`VITE_CID_API_URL` is unset**.
+- **COI + insurance artifacts (bridge):** **`coi_requests`** rows, generated **ACORD 25** PDFs, and **COI requirement uploads** are owned by **CID-PDF-API** + **cid-postgres** + **R2** (not the Famous **`cid-uploads`** path used in **legacy** COI submit). The API inserts **`coi_requests`**, optionally uploads requirements to R2, updates **`uploaded_file_path`** / **`uploaded_file_name`**, returns **201**, then runs async fulfillment (PDF + **`documents`** + Gmail) so fulfillment never starts on an incomplete row.
 
 ### B. Legacy mode (**`VITE_CID_API_URL` unset**)
 
 - Same as historical behavior: insured data reads/writes use **`supabase.from(...)`** for **`policies`**, **`quotes`**, etc., subject to RLS.
 - **Coverage chat** uses the **`coverage-chat`** Edge Function instead of **`/api/connect/chat`**.
 
-**E2E testing:** When validating **quote → bind → Connect**, confirm whether the **policy row** your pipeline writes is in **Famous `policies`** only, **cid-postgres** only, or both. **`bindQuote`** in Connect still writes to **Famous**; **`/api/connect`** reads from **cid-postgres**. Align pipeline + test users so the email exists in **`clients`** and policies exist where Connect reads.
+**E2E testing:** When validating **quote → bind → Connect**, confirm whether the **policy row** your pipeline writes is in **Famous `policies`** only, **cid-postgres** only, or both. **`bindQuote`** writes to **Famous** unless **`VITE_SKIP_FAMOUS_BIND_POLICY_WRITE`** is set with the bridge (then only **cid-postgres** via S6 + **`/api/connect`** reads). Align pipeline + test users so the email exists in **`clients`** and policies exist where Connect reads.
 
-See also **`docs/CONNECT_API_BRIDGE_STEP1_AUDIT.md`**, **`docs/DEPLOY.md`** (`VITE_CID_API_URL`), **`docs/STAGING_INTEGRATION_TEST_PLAN_DRAFT.md`** §4.
+See also **`docs/CONNECT_API_BRIDGE_STEP1_AUDIT.md`**, **`docs/DEPLOY.md`** (`VITE_CID_API_URL`, deploy order), **`docs/STAGING_INTEGRATION_TEST_PLAN_DRAFT.md`** §4.
 
 ## Where operator / pipeline data lives (don’t query the wrong DB)
 

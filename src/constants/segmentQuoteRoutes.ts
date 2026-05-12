@@ -29,4 +29,23 @@ export const SEGMENT_QUOTE_ROUTES: SegmentQuoteRoute[] = [
     quoteUrl: 'https://roofingcontractorinsurancedirect.com/',
     icon: 'home',
   },
+  {
+    id: 'hvac',
+    name: 'HVAC Insurance Direct',
+    quoteUrl: 'https://www.hvacinsurancedirect.com/',
+    icon: 'home',
+  },
+  {
+    id: 'fitness',
+    name: 'Fitness Insurance Direct',
+    quoteUrl: 'https://www.fitnessinsurancedirect.com/',
+    icon: 'home',
+  },
 ];
+
+/** Intake URL for a quote segment id (falls back to bar). */
+export function quoteIntakeUrlForSegment(segment: string | null | undefined): string {
+  const id = String(segment ?? 'bar').toLowerCase();
+  const match = SEGMENT_QUOTE_ROUTES.find((s) => s.id === id);
+  return match?.quoteUrl ?? SEGMENT_QUOTE_ROUTES[0].quoteUrl;
+}

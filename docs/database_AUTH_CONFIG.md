@@ -1,6 +1,6 @@
 # Auth configuration (Site URL, redirects, SMTP)
 
-**Scope:** Famous / Supabase **Auth** and email (password reset, SMTP). For **where insurance and operator pipeline data live** (Famous vs Render `cid_postgres`, Gmail poller, Connect policy reads), see **`docs/ARCHITECTURE.md`** and **`docs/WORKFLOW_HANDOFF.md`**.
+**Scope:** Famous / Supabase **Auth** and email (password reset, SMTP). **Insured COI certificates** (bridge) are emailed from **CID-PDF-API** (Gmail), not Resend — see **`docs/DEPLOY.md`** and **`pdf-backend/docs/Deploy_Guide.md`**. For **where insurance and operator pipeline data live** (Famous vs Render `cid_postgres`, Gmail poller, Connect policy reads), see **`docs/ARCHITECTURE.md`** and **`docs/WORKFLOW_HANDOFF.md`**.
 
 CID Connect reads **`VITE_SUPABASE_URL`** / **`VITE_SUPABASE_ANON_KEY`** from Netlify; password reset uses **`getPasswordResetRedirectUrl()`** (see `src/lib/siteUrl.ts` and `resetPassword` in `src/contexts/AuthContext.tsx`). No app changes are required once the **project Auth config** matches.
 

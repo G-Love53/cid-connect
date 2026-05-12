@@ -143,7 +143,7 @@ const ServicesScreen: React.FC<ServicesScreenProps> = ({
     },
     {
       id: 'shop',
-      title: 'Shop Your Renewal',
+      title: 'Renew your policy',
       description: 'Compare options and find the best rate',
       icon: Sparkles,
       onClick: onShopRenewal,

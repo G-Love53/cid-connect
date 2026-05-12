@@ -46,11 +46,11 @@
 | **Target architecture** | Canonical insurance rows in **`cid-postgres`**; Connect reads via **CID-PDF-API** **`/api/connect`** when **`VITE_CID_API_URL`** is set — see **`docs/ARCHITECTURE.md`** | **Network:** `GET` to **`{VITE_CID_API_URL}/api/connect/policies`** (or profile) with identity headers |
 | **Shipped bridge mode (when env set)** | **`getUserPolicies`, `getActivePolicyForUser`, etc.** in **`src/api.ts`** call **`connectApi`** → **`GET /api/connect/policies`**. Policy vault / timeline / quote history use those helpers. | Test user email must exist in **`clients.primary_email`**; policy rows in **cid-postgres** **`policies`** for that **`client_id`** |
 | **Legacy mode** (`VITE_CID_API_URL` unset) | Same helpers fall back to **`supabase.from('policies')`** (RLS). | **Network:** Supabase REST to **`policies`** |
-| **Segment backends** | **`app_settings`** `segment_backend_*` — used for **`fetch`** to CID-PDF-API routes (COI, claims, etc.) **in addition** to the universal **`/api/connect`** base URL |
+| **Segment backends** | **`app_settings`** `segment_backend_*` — used for **`fetch`** paths that still call segment hosts (e.g. **`fileClaim`** after **`POST /api/connect/claims`**). **COI submit** in bridge mode uses **`VITE_CID_API_URL`** only (**`/api/connect/coi/request`**), not segment **`/request-coi`**. |
 
-**One sentence:** *With **`VITE_CID_API_URL`** deployed, Connect’s insured policy list is driven by **`cid-postgres`** through **`/api/connect`**; without it, the app still uses **Famous `policies`** for those reads.*
+**One sentence:** *With **`VITE_CID_API_URL`** deployed, Connect’s insured policy list is driven by **`cid-postgres`** through **`/api/connect`**; without it, the app still uses **Famous `policies`** for those reads. **COI** (bridge) is created only via **`POST /api/connect/coi/request`** (JSON or multipart), not segment **`/request-coi`**. *
 
-**E2E gap to validate:** **Bind** may still write **`policies`** to **Famous** only (**`bindQuote`** in **`src/api.ts`**). Confirm your pipeline creates a **cid-postgres** policy + **`clients`** row for the same insured user before expecting the Connect bridge to show a policy.
+**E2E gap to validate:** **Bind** may still write **`policies`** to **Famous** only (**`bindQuote`** in **`src/api.ts`**) unless **`VITE_SKIP_FAMOUS_BIND_POLICY_WRITE`** is enabled with the bridge. Confirm your pipeline creates a **cid-postgres** policy + **`clients`** row for the same insured user before expecting the Connect bridge to show a policy.
 
 ---
 
@@ -66,7 +66,7 @@ Execute in order unless a step is marked parallel.
 | 4 | Policy row | Bind succeeded | In DB or operator: `policies` (or canonical table) has row for test user | Row present; `status` matches expectation (e.g. `active`) | Missing / wrong `user_id` |
 | 5 | Connect session | Test user can sign in | Open Connect staging; same Famous user as bound policy | Session `user.id` matches policy `user_id` | Wrong user / no session |
 | 6 | Active policy UI | Step 5 pass | Policy vault / home shows active policy | UI shows policy summary (bridge: data from **cid-postgres** via API) | Empty / error toast |
-| 7 | Documents / COI (optional) | Step 6 pass | Open documents or COI flow | Loads without error; data matches policy | 403 / empty / 404 client |
+| 7 | Documents / COI (optional) | Step 6 pass | Open documents or COI flow; submit COI with or without attachment | Loads without error; data matches policy; **bridge:** network shows **`POST …/api/connect/coi/request`** as **JSON** or **multipart** (field **`requirements`** when file attached); **`coi_requests`** in **cid-postgres** has **`uploaded_file_path`** populated before success response when a file was sent | 403 / empty / 404 client; multipart rejected by old API build |
 
 ---
 
@@ -103,6 +103,7 @@ Execute in order unless a step is marked parallel.
 - `docs/ARCHITECTURE.md` — target vs shipped data bridge
 - `reference/docs/BIND_TOKEN_SMOKE_TEST.md`
 - Connect policy reads: `src/api.ts` (`getUserPolicies`, `getActivePolicyForUser`), `src/lib/connectApi.ts`, `src/components/policy/PolicyVault.tsx`, `src/components/services/CoverageChat.tsx`
+- COI bridge: `src/lib/connectApi.ts` (`connectPostCoiRequest`), `src/api.ts` (`submitCoiRequest`); API: `pdf-backend` `src/routes/connectApi.js`, `src/services/connectCoiFulfillmentService.js`
 
 ---
 

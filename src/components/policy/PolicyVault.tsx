@@ -138,7 +138,7 @@ const PolicyVault: React.FC<PolicyVaultProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Renewal Banner - Prominent Shop Renewal Button */}
+      {/* Renewal banner */}
       {showRenewalBanner && (
         <Card className="border-0 shadow-lg bg-gradient-to-r from-orange-500 to-red-500 text-white overflow-hidden">
           <CardContent className="p-4">
@@ -157,7 +157,7 @@ const PolicyVault: React.FC<PolicyVaultProps> = ({
                 className="bg-white text-orange-600 hover:bg-gray-100 font-semibold"
               >
                 <Sparkles className="w-4 h-4 mr-2" />
-                Shop Renewal
+                Renew policy
               </Button>
             </div>
           </CardContent>
@@ -237,6 +237,15 @@ const PolicyVault: React.FC<PolicyVaultProps> = ({
                 View Timeline
               </Button>
             )}
+
+            <Button
+              onClick={onShopRenewal}
+              variant="outline"
+              className="w-full mt-2 border-white/30 text-white hover:bg-white/10 bg-transparent"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Renew policy
+            </Button>
 
           </CardContent>
         </Card>

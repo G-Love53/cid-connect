@@ -220,7 +220,7 @@ const RenewalReminders: React.FC<RenewalRemindersProps> = ({ onBack, onShopRenew
                   onClick={onShopRenewal}
                   className="w-full mt-4 bg-white text-[#1B3A5F] hover:bg-gray-100 font-semibold"
                 >
-                  Shop Your Renewal Now
+                  Renew your policy
                 </Button>
               )}
             </CardContent>

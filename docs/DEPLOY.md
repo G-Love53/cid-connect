@@ -26,7 +26,12 @@ Set these wherever the **built** app runs (Netlify **Site settings → Environme
 | **`VITE_SUPABASE_URL`** | Yes | Famous / DatabasePad project URL (browser-safe). |
 | **`VITE_SUPABASE_ANON_KEY`** | Yes | **Anon** key only — never the service role. |
 | **`VITE_SITE_URL`** | Optional | Canonical public origin for password reset / magic links (e.g. `https://your-connect.netlify.app`). If unset, the browser origin is used; Auth redirect allowlist must still match. |
-| **`VITE_CID_API_URL`** | Optional but **recommended** for production | Base URL of **CID-PDF-API** (no trailing slash), e.g. `https://cid-pdf-api.onrender.com`. When set, **insured** policy/quote/doc/claim/COI/KB/chat traffic uses **`/api/connect/*`** on that host (**`X-User-Email`** / **`X-User-Id`**). **Segment actions** (COI/claim `fetch` to segment backends) still resolve via **`app_settings`** `segment_backend_*` (see below). |
+| **`VITE_CID_API_URL`** | Optional but **recommended** for production | Base URL of **CID-PDF-API** (no trailing slash), e.g. `https://cid-pdf-api.onrender.com`. When set, **insured** policy/quote/doc/claim/COI reads and most writes use **`/api/connect/*`** on that host (**`X-User-Email`** / **`X-User-Id`**). **COI submit** (bridge) uses **`POST /api/connect/coi/request`** only — JSON or multipart in one request; no separate segment **`/request-coi`** call. **Claims** still use **`app_settings`** **`segment_backend_*`** for **`fileClaim`** notification after **`POST /api/connect/claims`**. Other segment **`fetch`** paths follow **`api.ts`**. |
+| **`VITE_SKIP_FAMOUS_BIND_POLICY_WRITE`** | Optional | With **`VITE_CID_API_URL`**, when **`true`/`1`/`yes`**: **`bindQuote`** skips Famous **`policies`** insert and **`quotes`** bind update; polls **`/api/connect/policies`** until the S6-created policy appears (or timeout). Default unset = legacy dual-write. |
+
+**Deploy order (COI + bridge):** Ship **CID-PDF-API** (`pdf-backend` on Render) with **`/api/connect/coi/request`** (multipart + R2) **before or with** a Connect build that sends multipart COI. Older API builds may not accept **`multipart/form-data`** on that route.
+
+**COI email (insured):** When **`CONNECT_COI_AUTO_FULFILL`** is enabled and R2/Gmail are configured on **Render** (not in the browser), the API generates ACORD 25, stores **`documents`**, and emails the certificate via **Gmail** (`sendWithGmail`). See **`pdf-backend/docs/Deploy_Guide.md`** → Connect COI / Gmail env.
 
 **Security:** If a key name contains `SERVICE_ROLE`, `SECRET`, or provider tokens, it must **not** appear in Connect env or any client bundle. See **`docs/ARCHITECTURE.md`**.
 
@@ -59,8 +64,10 @@ GitHub Actions runs a **build** on push to **`main`** (sanity check). Failing CI
 The host **only serves** built HTML/JS/CSS. It does **not** host the database or CID-PDF-API.
 
 1. Connect the **GitHub repo** that holds this app (e.g. **`main`** branch).
-2. Set **Environment variables** to match local **`.env`** (**`VITE_SUPABASE_URL`**, **`VITE_SUPABASE_ANON_KEY`**, optional **`VITE_SITE_URL`**, and **`VITE_CID_API_URL`** when using the **cid-postgres** bridge).
+2. Set **Environment variables** to match local **`.env`** (**`VITE_SUPABASE_URL`**, **`VITE_SUPABASE_ANON_KEY`**, optional **`VITE_SITE_URL`**, and **`VITE_CID_API_URL`** when using the **cid-postgres** bridge). **Redeploy** after changing **`VITE_*`** (they are inlined at build time).
 3. **`netlify.toml`** in this repo defines **`npm run build`**, publish **`dist`**, **Node 20**, SPA **`/*` → `/index.html`**, and cache headers via **`public/_headers`**.
+
+**Connect + API:** Prefer deploying **CID-PDF-API** first when shipping COI or **`/api/connect`** contract changes, then trigger a **Netlify build** so the SPA and API stay compatible (multipart COI, new fields, etc.).
 
 After first deploy, configure **Auth** (Site URL, redirect allowlist, optional SMTP): **`docs/database_AUTH_CONFIG.md`**.
 
@@ -132,5 +139,6 @@ CTAs in campaigns should still point at **canonical** segment intake + **CID Con
 | **`docs/ARCHITECTURE.md`** | Famous vs Render **`DATABASE_URL`**; target vs shipped policy reads; pipeline vs Connect tables. |
 | **`docs/database_AUTH_CONFIG.md`** | Site URL, redirect allowlist, optional SMTP (Management API examples). |
 | **`docs/WORKFLOW_HANDOFF.md`** | Famous ↔ Cursor handoff, smoke runbooks, Gmail/poller DB notes. |
+| **`docs/CONNECT_API_BRIDGE_STEP1_AUDIT.md`** | SPA ↔ Famous inventory; **`/api/connect`** surface; **COI** multipart + R2 (bridge). |
 | **`docs/STAGING_INTEGRATION_TEST_PLAN_DRAFT.md`** | Staging **quote → bind → policy → Connect** checklist. |
 | **`pdf-backend/docs/Deploy_Guide.md`** (sibling repo) | Postmaster, Gmail auth, **S5** client email checks, GitHub heartbeat vs **CID-PDF-API** `/healthz`. |

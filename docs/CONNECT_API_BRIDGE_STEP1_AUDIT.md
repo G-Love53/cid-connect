@@ -2,7 +2,7 @@
 
 **Purpose:** Map every `supabase.from()` / storage / realtime / edge invocation so Step 2 API endpoints match real usage.  
 **Repo:** `cid-connect` (production app code: `src/`).  
-**Date:** 2026-04-09 · **Status update:** Steps **2–5** implemented (see §8); **Step 6** = your quote/bind/policy E2E validation.  
+**Date:** 2026-04-09 · **Status update (2026-05):** Steps **2–5** implemented; **COI bridge** now uses **one** `POST /api/connect/coi/request` (**JSON** or **`multipart/form-data`**, file field **`requirements`**) with requirements stored on **API R2**, not **`cid-uploads`** in bridge mode. **Step 6** = your quote/bind/policy E2E validation.  
 **Scope note:** `reference/functions/*` is deployable Edge Function source (e.g. `redeem-bind-token`); listed separately from the SPA.
 
 **Bridge mode:** When **`VITE_CID_API_URL`** is set, many rows below are **not** queried via `supabase.from` for insured flows — see **`src/lib/connectApi.ts`** and **`src/api.ts`** branches. This document remains the historical inventory for **legacy mode** and for **tables still on Famous** (profiles, admin, etc.).
@@ -18,7 +18,9 @@
 | **Not used via Supabase `.from()` in `src/`** | `submissions`, `carrier_messages`, `invoices` — pipeline tables on Render |
 | **Clients / cid-postgres identity** | **`clients`** is not read directly in the SPA; identity for **`/api/connect`** is resolved **on CID-PDF-API** using headers + **`clients`** in **cid-postgres** |
 
-**Storage buckets:** `policy-documents`, `cid-uploads`, `ai-training-docs` (plus `carrier_resources` metadata in DB).
+**Storage buckets (legacy / non-bridge paths):** `policy-documents`, `cid-uploads`, `ai-training-docs` (plus `carrier_resources` metadata in DB).
+
+**Bridge COI storage:** Requirement **files** are **not** uploaded to Famous **`cid-uploads`** when **`VITE_CID_API_URL`** is set. The SPA sends **`FormData`** to **`POST /api/connect/coi/request`**; **CID-PDF-API** writes **`coi_requests.uploaded_file_path`** / **`uploaded_file_name`** (R2 keys) before returning **201**, then async fulfillment emails ACORD 25 (see **`pdf-backend`** `connectCoiFulfillmentService.js`).
 
 **Submissions / pipeline:** UI copy references “quote submissions”; data is read from **`quotes`**, not a `submissions` table.
 
@@ -86,7 +88,7 @@ All other feature flows go through **`src/api.ts`** helpers.
 | Function / area | Op | Select / filter highlights |
 |-----------------|----|-----------------------------|
 | `getDistinctSegments` | R | `select('segment')` only |
-| `bindQuote` | W | INSERT policy; UPDATE `quotes` status `bound` |
+| `bindQuote` | W | **Bridge + `VITE_SKIP_FAMOUS_BIND_POLICY_WRITE`:** no Famous policy/quote write; polls **`/api/connect/policies`** for S6 row. **Else bridge:** may still write Famous (legacy). **Legacy:** INSERT policy + UPDATE quote + segment path as before. |
 | `getUserPolicies` | R | `user_id` |
 | `getAllPolicies` | R | Admin — all rows |
 | `getPolicyById` | R | `id` |
@@ -116,7 +118,7 @@ All other feature flows go through **`src/api.ts`** helpers.
 | `getDownloadUrl`, `downloadDocumentFile` | `policy-documents` | Signed URL |
 | `getCarrierResourceDownloadUrl` | `policy-documents` | Signed URL |
 | `uploadClaimPhotos`, `getClaimPhotoUrl` | `cid-uploads` | Upload / signed URL |
-| `uploadCoiFile` | `cid-uploads` | Upload |
+| `uploadCoiFile` | `cid-uploads` | Upload | **Legacy COI only** — not used for insured COI submit when **`VITE_CID_API_URL`** is set (**`connectPostCoiRequest`** → API R2). |
 
 ### Claims (`claims`)
 
@@ -135,7 +137,7 @@ All other feature flows go through **`src/api.ts`** helpers.
 
 | Function | Op | Notes |
 |----------|-----|--------|
-| `submitCoiRequest` | W + W | Insert; update after `requestCoi()` → CID-PDF-API |
+| `submitCoiRequest` | W | **Bridge:** **`connectPostCoiRequest`** → **`POST /api/connect/coi/request`** (JSON or multipart **`requirements`**); no **`requestCoi`** to segment. **Legacy:** insert Famous **`coi_requests`** + **`uploadCoiFile`** + segment notify. |
 | `getUserCoiRequests`, `getCoiRequestById` | R | |
 | `getAllCoiRequests`, `updateCoiRequestStatus`, `updateCoiRequestPdfUrl` | R/W | Admin |
 
@@ -194,7 +196,7 @@ All other feature flows go through **`src/api.ts`** helpers.
 
 - **Core:** `policies`, `quotes`, `documents`, `claims`, `coi_requests`, `carriers`, `carrier_resources`
 - **Related:** `chat_messages` (if chat history stays in DB), `document_downloads`, `payment_method_requests`, `renewal_preferences`, `renewal_bindings`, `renewal_notifications`
-- **Storage:** Document and claim/COI file access should become **server-issued URLs** (or R2 via API), not browser buckets pointing at canonical insurance files — align with migration plan.
+- **Storage:** Policy and claim flows: **server-issued URLs** (or R2 via API) for canonical insurance files in bridge mode. **COI requirement uploads (bridge):** **`cid-uploads`** is bypassed — files land in **R2** via **`POST /api/connect/coi/request`**.
 
 ### Target: **stay** on Famous Supabase (app + admin platform)
 
@@ -216,11 +218,11 @@ All other feature flows go through **`src/api.ts`** helpers.
 Minimal set to replace **direct** insurance reads/writes in Connect:
 
 1. **GET** policies (list + by id), **GET** quotes (list + detail), **GET** documents list, **GET** claims, **GET** coi_requests, **GET** carriers / carrier_resources (as needed)
-2. **POST** claim, **POST** coi request (or **POST** to API that writes `cid-postgres` + calls segment backend internally)
+2. **POST** claim (**`/api/connect/claims`** + optional segment **`fileClaim`**), **POST** coi request (**`/api/connect/coi/request`** — single payload; multipart when file attached)
 3. **PATCH** claim/coi status (admin) — or admin-only routes
 4. **GET** policy/quote/claim activity aggregates (replace `getAnalyticsData` / overview raw queries or move analytics to API)
 5. **Chat:** **POST** `/api/connect/chat` (replaces `coverage-chat` Edge + `chat_messages` pattern)
-6. **Storage:** **GET** signed URLs for policy docs / claim photos / COI uploads via API
+6. **Storage:** **GET** signed URLs for policy docs / claim photos via API where implemented; **COI requirement files** on bridge = **R2** via API (**no** browser **`cid-uploads`** for that path)
 
 **Platform tables** (webhooks, audit log, email templates, retry queue) can remain Supabase until a separate “admin API” migration.
 
@@ -247,9 +249,10 @@ Minimal set to replace **direct** insurance reads/writes in Connect:
 | API routes | **`pdf-backend`** `src/routes/connectApi.js` |
 | Auth headers | **`X-User-Email`**, **`X-User-Id`** — `src/middleware/connectAuth.js` |
 | Migrations | **`pdf-backend/migrations/007_connect_api.sql`**, **`008_kb_v0_seed.sql`** |
-| Connect client | **`cid-connect`** `src/lib/connectApi.ts` |
+| Connect client | **`cid-connect`** `src/lib/connectApi.ts` — **`connectFetch`**, **`connectPost`**, **`connectPostCoiRequest`**, row mappers |
+| COI auto-fulfill (email + R2 + `documents`) | **`pdf-backend`** `src/services/connectCoiFulfillmentService.js` |
 | Smoke script | **`pdf-backend/scripts/smoke-connect-api.sh`** |
-| Deploy env | **`cid-connect`** `docs/DEPLOY.md` — **`VITE_CID_API_URL`**; Render **`ANTHROPIC_API_KEY`** (chat) |
+| Deploy env | **`cid-connect`** `docs/DEPLOY.md` — **`VITE_CID_API_URL`**; Render **`ANTHROPIC_API_KEY`** (chat), **R2** + **`CONNECT_COI_AUTO_FULFILL`** + Gmail for COI delivery |
 
 ---
 

@@ -5,6 +5,7 @@ import {
     isConnectInsuranceApiEnabled,
     connectGet,
     connectPost,
+    connectPostCoiRequest,
     mapConnectPolicyRow,
     mapConnectQuoteRow,
     mapConnectClaimRow,
@@ -13,7 +14,60 @@ import {
 } from '@/lib/connectApi';
 import { Quote, Policy, Document, Claim, COIRequest, CarrierResource, CarrierOption, Carrier } from '@/types';
 
+/** Bridge on + this true → bindQuote does not write Famous policies/quotes; waits for cid-postgres policy (S6 webhook). */
+export function isSkipFamousBindPolicyWriteEnabled(): boolean {
+    if (!isConnectInsuranceApiEnabled()) return false;
+    const v = String(import.meta.env.VITE_SKIP_FAMOUS_BIND_POLICY_WRITE ?? '').trim().toLowerCase();
+    return v === 'true' || v === '1' || v === 'yes';
+}
 
+const BRIDGE_BIND_POLL_ATTEMPTS = 30;
+const BRIDGE_BIND_POLL_MS = 1000;
+
+function normalizeIdForBindMatch(s: string | undefined | null): string {
+    return String(s ?? '').trim().toLowerCase();
+}
+
+/**
+ * After S6/BoldSign finalize, cid-postgres has the policy; Connect reads via bridge.
+ * Poll until the policy row appears or timeout (customer may land slightly before webhook).
+ */
+async function waitForBridgePolicyAfterBindQuote(quoteId: string, userId: string): Promise<Policy> {
+    const target = normalizeIdForBindMatch(quoteId);
+    for (let i = 0; i < BRIDGE_BIND_POLL_ATTEMPTS; i++) {
+        const policies = await getUserPolicies(userId);
+        const hit = policies.find((p) => {
+            const q = p.quote_id != null ? normalizeIdForBindMatch(p.quote_id) : '';
+            if (q && q === target) return true;
+            if (normalizeIdForBindMatch(p.id) === target) return true;
+            return false;
+        });
+        if (hit) return hit;
+        if (i < BRIDGE_BIND_POLL_ATTEMPTS - 1) {
+            await new Promise((r) => setTimeout(r, BRIDGE_BIND_POLL_MS));
+        }
+    }
+    throw new Error(
+        'Policy is not in Connect yet. If you started a bind, finish signing in BoldSign, then open the Policy tab — it usually appears within a few seconds after signing completes.',
+    );
+}
+
+/** Mint short-lived renewal token and return segment intake URL with `renewal_token` (CID-PDF-API). */
+export async function requestRenewalIntakeUrl(
+    policyId: string,
+): Promise<{ redirectUrl: string; expiresInSec: number }> {
+    if (!isConnectInsuranceApiEnabled()) {
+        throw new Error('Insurance portal link is unavailable (API not configured).');
+    }
+    const j = await connectPost<{
+        redirectUrl: string;
+        expiresInSec: number;
+    }>('/renewal-intake-token', { policyId });
+    if (!j.ok || !j.data?.redirectUrl) {
+        throw new Error(j.error || 'Could not open renewal application.');
+    }
+    return { redirectUrl: j.data.redirectUrl, expiresInSec: j.data.expiresInSec };
+}
 
 
 // ============================================
@@ -248,6 +302,10 @@ export async function bindQuote(quoteId: string, userId: string, carrierId?: str
 
     if (quote.eligibility === 'Declined') {
         throw new Error('Cannot bind a declined quote');
+    }
+
+    if (isSkipFamousBindPolicyWriteEnabled()) {
+        return await waitForBridgePolicyAfterBindQuote(quoteId, userId);
     }
 
     // Generate a policy number
@@ -1514,31 +1572,24 @@ export async function submitCoiRequest(
         if (!policyId) {
             throw new Error('A policy is required to submit a COI request.');
         }
-        const j = await connectPost<Record<string, unknown>>('/coi/request', {
-            policyId,
-            holderName: formData.holderName,
-            holderAddress: formData.address,
-            city: formData.city,
-            state: formData.state,
-            zip: formData.zip,
-            email: formData.email,
-            certificateType: formData.certificateType,
-            additionalInstructions: formData.additionalInstructions,
-        });
+        const j = await connectPostCoiRequest(
+            {
+                policyId,
+                holderName: formData.holderName,
+                holderAddress: formData.address,
+                city: formData.city,
+                state: formData.state,
+                zip: formData.zip,
+                email: formData.email,
+                certificateType: formData.certificateType,
+                additionalInstructions: formData.additionalInstructions,
+            },
+            file ?? undefined,
+        );
         if (!j.ok || !j.data) {
             throw new Error(j.error || 'Failed to save COI request');
         }
-        let coiRequest = mapConnectCoiRow(j.data as Record<string, unknown>, userId);
-        if (file) {
-            const path = await uploadCoiFile(userId, coiRequest.request_number, file);
-            if (path) {
-                coiRequest = {
-                    ...coiRequest,
-                    uploaded_file_path: path,
-                    uploaded_file_name: file.name,
-                };
-            }
-        }
+        const coiRequest = mapConnectCoiRow(j.data as Record<string, unknown>, userId);
         // CID-PDF-API renders ACORD 25, stores `documents`, and emails (no legacy segment /request-coi).
         const backendResponse = {
             message:
