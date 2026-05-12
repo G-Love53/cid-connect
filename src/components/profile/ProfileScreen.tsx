@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { User, Mail, Shield, LogOut, ChevronRight, Bell, Lock, HelpCircle, FileText, Smartphone } from 'lucide-react';
+import { User, Mail, Shield, LogOut, ChevronRight, Bell, Lock, HelpCircle, FileText, Smartphone, ExternalLink } from 'lucide-react';
 import { InstallCidConnectCard } from '@/components/InstallCidConnectCard';
 import { toast } from '@/components/ui/use-toast';
 
@@ -60,6 +60,14 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenDocuments }) => {
         onClick: () => {
           window.location.href =
             'mailto:support@commercialinsurance-direct.com?subject=CID%20Connect%20Support';
+        },
+      },
+      {
+        icon: ExternalLink,
+        label: 'Privacy Policy',
+        description: 'How we handle your information',
+        onClick: () => {
+          window.open('https://barinsurancedirect.com/privacy', '_blank', 'noopener,noreferrer');
         },
       },
     ],
