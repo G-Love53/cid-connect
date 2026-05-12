@@ -1539,28 +1539,12 @@ export async function submitCoiRequest(
                 };
             }
         }
-        let backendResponse: any = null;
-        const formattedSegment = formatSegmentForApi(segment || '');
-        try {
-            backendResponse = await requestCoi(formattedSegment, {
-                userId,
-                policyId: policyId || '',
-                recipientName: formData.holderName,
-                recipientEmail: formData.email,
-                certificateHolderAddress: fullAddress,
-                specialRequirements: [
-                    formData.certificateType !== 'standard' ? `Type: ${formData.certificateType}` : '',
-                    formData.additionalInstructions || ''
-                ].filter(Boolean).join('\n')
-            });
-        } catch (apiError: any) {
-            console.error('Backend COI notification failed:', apiError);
-            backendResponse = {
-                error: apiError.message,
-                warning: true,
-                message: 'COI request saved. Backend notification pending — our team will process it manually.'
-            };
-        }
+        // CID-PDF-API renders ACORD 25, stores `documents`, and emails (no legacy segment /request-coi).
+        const backendResponse = {
+            message:
+                'Your certificate request was received. You will get an email with your ACORD 25 when generation finishes, and it will appear under Policy Documents.',
+            handled_by: 'cid_pdf_api',
+        };
         return { coiRequest, backendResponse };
     }
 
