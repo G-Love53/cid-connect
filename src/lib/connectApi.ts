@@ -207,11 +207,25 @@ export function mapConnectCoiRow(row: Record<string, unknown>, userId: string): 
 }
 
 export function mapConnectDocumentRow(row: Record<string, unknown>, userId: string): Document {
-  const role = String(row.document_role ?? "");
-  const displayName =
-    role === "coi_generated"
-      ? "Certificate of Insurance (ACORD 25)"
-      : String(row.document_type ?? row.document_role ?? "Document");
+  const role = String(row.document_role ?? "").toLowerCase();
+  const roleTitles: Record<string, string> = {
+    coi_generated: "Certificate of Insurance (ACORD 25)",
+    declarations_original: "Declarations",
+    policy_original: "Policy document",
+    signed_bind_docs: "Signed bind packet",
+    carrier_quote_original: "Carrier quote",
+    quote_packet_sent: "Quote packet",
+    signed_acceptance: "Signed acceptance",
+    application_original: "Application",
+    endorsement: "Endorsement",
+    coverage_summary_generated: "Coverage summary",
+  };
+  let displayName = role && roleTitles[role] ? roleTitles[role] : "";
+  if (!displayName) {
+    const dt = String(row.document_type ?? "").toLowerCase();
+    if (dt === "pdf") displayName = "Policy PDF";
+    else displayName = String(row.document_type ?? row.document_role ?? "Document");
+  }
   return {
     id: String(row.document_id ?? row.id),
     user_id: userId,

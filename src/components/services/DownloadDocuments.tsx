@@ -289,6 +289,7 @@ const DownloadDocuments: React.FC<DownloadDocumentsProps> = ({ onBack }) => {
 
   const getDocumentTypeLabel = (type: string) => {
     const labels: { [key: string]: string } = {
+      'pdf': 'PDF',
       'declaration': 'Declaration Page',
       'policy': 'Policy Document',
       'coi': 'Certificate of Insurance',
