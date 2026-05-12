@@ -32,7 +32,7 @@ export const SEGMENT_QUOTE_ROUTES: SegmentQuoteRoute[] = [
   {
     id: 'hvac',
     name: 'HVAC Insurance Direct',
-    quoteUrl: 'https://www.hvacinsurancedirect.com/',
+    quoteUrl: 'https://hvacinsurancedirect.com/',
     icon: 'home',
   },
   {
