@@ -45,10 +45,10 @@ Legend: **R** = read, **W** = write/update/delete, **Primary file** = main calle
 | `email_templates` | R/W/D | `getEmailTemplates`, `upsertEmailTemplate`, `deleteEmailTemplate` | Admin |
 | `inbound_webhook_events` | R | `getInboundWebhookEvents` | Paginated |
 | `payment_method_requests` | W | `UpdatePaymentMethod.tsx` | After API success |
-| `policies` | R/W | Many | `user_id`, `status`, id; `bindQuote` insert; admin get all |
+| `policies` | R/W | Many | `user_id`, `status`, id; admin get all; Connect SPA does not perform bind inserts here |
 | `policy_bind_tokens` | R/W/D | `api.ts` — list/create/revoke; Edge `redeem-bind-token` updates policies | Admin + token lifecycle |
 | `profiles` | R/W | `AuthContext`, `BindTokenRedemption`, `PostBindOnboarding`, `api.ts` admin | Role, onboarding, list all |
-| `quotes` | R/W | `getQuoteDetails`, `getUserQuotes`, `getAllQuotesAdmin`, `bindQuote` | `user_id`, `quote_id`, `id` |
+| `quotes` | R/W | `getQuoteDetails`, `getUserQuotes`, `getAllQuotesAdmin` | `user_id`, `quote_id`, `id` |
 | `renewal_bindings` | R | `RenewalComparison.tsx` | User’s renewal |
 | `renewal_notifications` | R | `getRenewalNotifications`, `getAdminAlerts` | Status filters |
 | `renewal_preferences` | W | `RenewalReminders.tsx` | User preferences |
@@ -88,7 +88,7 @@ All other feature flows go through **`src/api.ts`** helpers.
 | Function / area | Op | Select / filter highlights |
 |-----------------|----|-----------------------------|
 | `getDistinctSegments` | R | `select('segment')` only |
-| `bindQuote` | W | **Bridge + `VITE_SKIP_FAMOUS_BIND_POLICY_WRITE`:** no Famous policy/quote write; polls **`/api/connect/policies`** for S6 row. **Else bridge:** may still write Famous (legacy). **Legacy:** INSERT policy + UPDATE quote + segment path as before. |
+| *(removed)* `bindQuote` | — | **No longer in Connect.** Bind is operator / **CID-PDF-API** S6 into **cid-postgres**; bridge reads **`GET /api/connect/policies`**. |
 | `getUserPolicies` | R | `user_id` |
 | `getAllPolicies` | R | Admin — all rows |
 | `getPolicyById` | R | `id` |
@@ -259,7 +259,7 @@ Minimal set to replace **direct** insurance reads/writes in Connect:
 ## 8. Next action (ongoing)
 
 - **Operational:** Run **`scripts/smoke-connect-api.sh`** after deploys (`CID_API_URL`, `TEST_EMAIL`).
-- **Product / QA:** Complete **Step 6** — confirm pipeline writes policies clients can see via **`/api/connect`** (email in **`clients`**, rows in **cid-postgres** **`policies`**). **`bindQuote`** still targets **Famous** until/unless replaced by an API bind path.
+- **Product / QA:** Complete **Step 6** — confirm pipeline writes policies clients can see via **`/api/connect`** (email in **`clients`**, rows in **cid-postgres** **`policies`**). Connect does not perform client-side Famous bind writes.
 
 ---
 

@@ -90,7 +90,7 @@ End-to-end flow when the **Connect** build includes **`VITE_CID_API_URL`** (e.g.
 3. **CID-PDF-API** **`connectAuthMiddleware`** resolves **`clients`** in **Render Postgres** (`DATABASE_URL`) by **`famous_user_id`** or **`primary_email`**, then attaches **`client_id`** for downstream queries.
 4. **Handlers** in **`src/routes/connectApi.js`** read/write **cid-postgres** tables (`policies`, `quotes`, `documents`, `claims`, `coi_requests`, `carrier_knowledge`, etc.). **Chat** uses **`src/services/connectChatService.js`** (Claude + Gemini; keys on Render only).
 5. **COI (bridge):** **`POST /api/connect/coi/request`** accepts JSON (no file) or **`multipart/form-data`** with field **`requirements`** — insert row → optional R2 upload → update **`uploaded_file_path`** → **201** → async ACORD 25 fulfillment (Gmail + **`documents`**). Avoids create-then-upload races vs a separate browser upload.
-6. **Platform** data (**`profiles`**, **`app_settings`**, admin, **`chat_messages`** persistence, **`bindQuote`** inserts to Famous **unless** **`VITE_SKIP_FAMOUS_BIND_POLICY_WRITE`** with bridge) remains on **Famous** unless separately migrated.
+6. **Platform** data (**`profiles`**, **`app_settings`**, admin, **`chat_messages`** persistence) remains on **Famous** unless separately migrated. Insured policies in bridge mode are read from **cid-postgres** via **`/api/connect`** after S6, not via an in-app Famous bind write from Connect.
 
 **Do not** run **cid-postgres** migrations in the Famous SQL editor. **External** DB URL for `psql` / CI: **`pdf-backend`** Render Postgres dashboard (not the internal URL from the web service env if you connect from your laptop).
 

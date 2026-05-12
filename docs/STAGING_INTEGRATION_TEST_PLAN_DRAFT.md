@@ -50,7 +50,7 @@
 
 **One sentence:** *With **`VITE_CID_API_URL`** deployed, Connect’s insured policy list is driven by **`cid-postgres`** through **`/api/connect`**; without it, the app still uses **Famous `policies`** for those reads. **COI** (bridge) is created only via **`POST /api/connect/coi/request`** (JSON or multipart), not segment **`/request-coi`**. *
 
-**E2E gap to validate:** **Bind** may still write **`policies`** to **Famous** only (**`bindQuote`** in **`src/api.ts`**) unless **`VITE_SKIP_FAMOUS_BIND_POLICY_WRITE`** is enabled with the bridge. Confirm your pipeline creates a **cid-postgres** policy + **`clients`** row for the same insured user before expecting the Connect bridge to show a policy.
+**E2E gap to validate:** After bind (S6), confirm **cid-postgres** has the **`policies`** row and **`clients`** row (matching **`primary_email`**) for the insured user before expecting the Connect bridge (**`VITE_CID_API_URL`**) to show that policy. In legacy mode (no bridge URL), Connect still reads **Famous `policies`** — align test data with the build’s env.
 
 ---
 

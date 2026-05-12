@@ -14,44 +14,6 @@ import {
 } from '@/lib/connectApi';
 import { Quote, Policy, Document, Claim, COIRequest, CarrierResource, CarrierOption, Carrier } from '@/types';
 
-/** Bridge on + this true → bindQuote does not write Famous policies/quotes; waits for cid-postgres policy (S6 webhook). */
-export function isSkipFamousBindPolicyWriteEnabled(): boolean {
-    if (!isConnectInsuranceApiEnabled()) return false;
-    const v = String(import.meta.env.VITE_SKIP_FAMOUS_BIND_POLICY_WRITE ?? '').trim().toLowerCase();
-    return v === 'true' || v === '1' || v === 'yes';
-}
-
-const BRIDGE_BIND_POLL_ATTEMPTS = 30;
-const BRIDGE_BIND_POLL_MS = 1000;
-
-function normalizeIdForBindMatch(s: string | undefined | null): string {
-    return String(s ?? '').trim().toLowerCase();
-}
-
-/**
- * After S6/BoldSign finalize, cid-postgres has the policy; Connect reads via bridge.
- * Poll until the policy row appears or timeout (customer may land slightly before webhook).
- */
-async function waitForBridgePolicyAfterBindQuote(quoteId: string, userId: string): Promise<Policy> {
-    const target = normalizeIdForBindMatch(quoteId);
-    for (let i = 0; i < BRIDGE_BIND_POLL_ATTEMPTS; i++) {
-        const policies = await getUserPolicies(userId);
-        const hit = policies.find((p) => {
-            const q = p.quote_id != null ? normalizeIdForBindMatch(p.quote_id) : '';
-            if (q && q === target) return true;
-            if (normalizeIdForBindMatch(p.id) === target) return true;
-            return false;
-        });
-        if (hit) return hit;
-        if (i < BRIDGE_BIND_POLL_ATTEMPTS - 1) {
-            await new Promise((r) => setTimeout(r, BRIDGE_BIND_POLL_MS));
-        }
-    }
-    throw new Error(
-        'Policy is not in Connect yet. If you started a bind, finish signing in BoldSign, then open the Policy tab — it usually appears within a few seconds after signing completes.',
-    );
-}
-
 /** Mint short-lived renewal token and return segment intake URL with `renewal_token` (CID-PDF-API). */
 export async function requestRenewalIntakeUrl(
     policyId: string,
@@ -282,128 +244,6 @@ export async function getQuoteDetails(id: string): Promise<Quote | null> {
     }
 
     return data as Quote;
-}
-
-/**
- * Bind a quote and create a new policy record
- * @param quoteId - The quote_id string (e.g., "QT-123456")
- * @param userId - The user's UUID
- * @param carrierId - Optional carrier UUID from the carriers table
- * @param carrierName - Optional carrier name override
- * @returns The newly created policy or null on error
- */
-export async function bindQuote(quoteId: string, userId: string, carrierId?: string | null, carrierName?: string): Promise<Policy | null> {
-    // First, fetch the quote details
-    const quote = await getQuoteDetails(quoteId);
-    
-    if (!quote) {
-        throw new Error('Quote not found');
-    }
-
-    if (quote.eligibility === 'Declined') {
-        throw new Error('Cannot bind a declined quote');
-    }
-
-    if (isSkipFamousBindPolicyWriteEnabled()) {
-        return await waitForBridgePolicyAfterBindQuote(quoteId, userId);
-    }
-
-    // Generate a policy number
-    const policyNumber = `POL-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-
-    // Calculate effective and expiration dates
-    const effectiveDate = new Date();
-    const expirationDate = new Date();
-    expirationDate.setFullYear(expirationDate.getFullYear() + 1);
-
-    // Extract business name from application details or use a default
-    const businessName = quote.business_name || extractBusinessName(quote.application_details) || 'Business';
-
-    // Resolve carrier name: explicit override > quote carrier > default
-    const resolvedCarrier = carrierName || quote.carrier || 'CID Insurance Partners';
-
-    // Create the policy record
-    const insertData: any = {
-        user_id: userId,
-        policy_number: policyNumber,
-        segment: quote.segment,
-        business_name: businessName,
-        carrier: resolvedCarrier,
-        effective_date: effectiveDate.toISOString().split('T')[0],
-        expiration_date: expirationDate.toISOString().split('T')[0],
-        premium: quote.premium || 0,
-        status: 'active',
-        general_liability_limit: '$1,000,000',
-        property_limit: '$500,000',
-        deductible: 1000,
-        payment_frequency: 'monthly',
-        next_payment_date: getNextPaymentDate(),
-        next_payment_amount: quote.premium ? Math.round(quote.premium / 12) : 0
-    };
-
-    // Add carrier_id if provided
-    if (carrierId) {
-        insertData.carrier_id = carrierId;
-    }
-
-    const { data: policy, error: policyError } = await supabase
-        .from('policies')
-        .insert(insertData)
-        .select()
-        .single();
-
-    if (policyError) {
-        console.error('Error creating policy:', policyError);
-        throw new Error('Failed to create policy record');
-    }
-
-    // Update the quote status to 'bound'
-    const { error: updateError } = await supabase
-        .from('quotes')
-        .update({ 
-            status: 'bound',
-            bound_at: new Date().toISOString()
-        })
-        .eq('quote_id', quoteId);
-
-    if (updateError) {
-        console.error('Error updating quote status:', updateError);
-        // Don't throw here - policy was created successfully
-    }
-
-    return policy as Policy;
-}
-
-
-/**
- * Helper function to extract business name from application details
- */
-function extractBusinessName(applicationDetails: string): string | null {
-    // Try to find common patterns for business names
-    const patterns = [
-        /business\s*name[:\s]+([^,.\n]+)/i,
-        /company[:\s]+([^,.\n]+)/i,
-        /^([A-Z][a-zA-Z\s&]+(?:LLC|Inc|Corp|Co\.?)?)/m,
-    ];
-
-    for (const pattern of patterns) {
-        const match = applicationDetails.match(pattern);
-        if (match && match[1]) {
-            return match[1].trim();
-        }
-    }
-
-    return null;
-}
-
-/**
- * Helper function to get the next payment date (first of next month)
- */
-function getNextPaymentDate(): string {
-    const date = new Date();
-    date.setMonth(date.getMonth() + 1);
-    date.setDate(1);
-    return date.toISOString().split('T')[0];
 }
 
 /**
@@ -1199,36 +1039,6 @@ export async function sendStatusNotification(params: {
   }
 }
 
-/**
- * Send a bind confirmation email (fire-and-forget).
- * Called after a quote is successfully bound into a policy.
- */
-export async function notifyBindSuccess(params: {
-  userEmail: string;
-  policyNumber: string;
-  carrierName: string;
-  premiumDisplay: string;
-  effectiveDate: string;
-  userName?: string;
-}): Promise<{ success: boolean; error?: string }> {
-  const extraLines = [
-    `Policy Number: ${params.policyNumber}`,
-    `Carrier: ${params.carrierName}`,
-    `Annual Premium: ${params.premiumDisplay}`,
-    `Effective Date: ${params.effectiveDate}`,
-  ].join('\n');
-
-  return sendStatusNotification({
-    user_email: params.userEmail,
-    reference_number: params.policyNumber,
-    entity_type: 'policy',
-    new_status: 'bound',
-    user_name: params.userName,
-    extra_context: extraLines,
-  });
-}
-
-
 // ============================================
 // ANALYTICS FUNCTIONS
 export interface WeeklyDataPoint {
@@ -1809,29 +1619,7 @@ export async function getRenewalQuotes(userId: string, policyId: string, segment
     return response.json();
 }
 
-// 4. Function to bind a renewal policy
-export async function bindRenewal(userId: string, policyId: string, segment: string, selectedQuoteId: string) {
-    
-    const BASE_URL = await getBaseUrl(segment);
-
-    if (!BASE_URL) {
-        throw new Error(`No backend configured for segment "${segment}".`);
-    }
-
-    const response = await fetch(`${BASE_URL}/bind-renewal`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, policyId, selectedQuoteId })
-    });
-
-    if (!response.ok) {
-        throw new Error(`Failed to bind renewal. Backend: ${BASE_URL}.`);
-    }
-
-    return response.json();
-}
-
-// 5. Function to download policy documents
+// 4. Function to download policy documents
 export async function downloadDocument(userId: string, policyId: string, documentType: string, segment: string) {
     
     const BASE_URL = await getBaseUrl(segment);
@@ -1853,7 +1641,7 @@ export async function downloadDocument(userId: string, policyId: string, documen
     return response.json();
 }
 
-// 6. Function to update payment method
+// 5. Function to update payment method
 export async function updatePaymentMethod(userId: string, policyId: string, paymentData: any, segment: string) {
     
     const BASE_URL = await getBaseUrl(segment);
@@ -1875,7 +1663,7 @@ export async function updatePaymentMethod(userId: string, policyId: string, paym
     return response.json();
 }
 
-// 7. Function to set renewal reminders
+// 6. Function to set renewal reminders
 export async function setRenewalReminders(userId: string, policyId: string, reminderPreferences: any, segment: string) {
     
     const BASE_URL = await getBaseUrl(segment);
@@ -1897,7 +1685,7 @@ export async function setRenewalReminders(userId: string, policyId: string, remi
     return response.json();
 }
 
-// 8. Function to get AI coverage analysis
+// 7. Function to get AI coverage analysis
 export async function getCoverageAnalysis(userId: string, policyId: string, question: string, segment: string) {
     
     const BASE_URL = await getBaseUrl(segment);
