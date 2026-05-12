@@ -567,29 +567,30 @@ const RequestCOI: React.FC<RequestCOIProps> = ({ onBack }) => {
           </CardContent>
         </Card>
 
-        {/* Section 4: Additional Insureds */}
+        {/* Section 4: Special instructions (printed on ACORD 25) */}
         <Card className="border-0 shadow-md">
           <CardHeader className="pb-4">
             <CardTitle className="text-lg flex items-center gap-2">
               <FileText className="w-5 h-5 text-[#1B3A5F]" />
-              Additional Insureds
+              Special Instructions
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               <Label htmlFor="additionalInstructions">
-                Additional Insured Language / Special Instructions
+                Paste or type special language, additional insured wording, or other instructions
               </Label>
               <Textarea
                 id="additionalInstructions"
-                placeholder="Enter any additional insured language, endorsements, or special instructions here..."
+                placeholder="Example: additional insured language, endorsement requests, job or venue-specific wording…"
                 rows={6}
                 value={formData.additionalInstructions}
                 onChange={(e) => handleInputChange('additionalInstructions', e.target.value)}
                 className="border-gray-200 resize-none focus:ring-[#F7941D] focus:border-[#F7941D]"
               />
               <p className="text-xs text-gray-400">
-                Include any specific wording requirements, additional insureds, or special endorsements needed
+                This text is printed on your certificate (ACORD 25). For PDF exhibits (schedules, contracts), use the
+                upload area above—not this box.
               </p>
             </div>
           </CardContent>
