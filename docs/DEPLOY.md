@@ -14,6 +14,7 @@
 | Connect **runtime config** (public) | Host env: **`VITE_*`** only |
 | **Segment → API base URL** | Famous **`app_settings`** rows `segment_backend_<segment>` (see below) |
 | **Auth / DB for Connect app** | Famous (Supabase-compatible) — URL + **anon** key in the client |
+| **Vendors (full platform)** | **`pdf-backend/docs/VENDORS_S1_S6_CONNECT.md`** — dated S1–S6 + Connect vendor list |
 
 ---
 

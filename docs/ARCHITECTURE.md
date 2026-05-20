@@ -78,3 +78,7 @@ See also **`docs/CONNECT_API_BRIDGE_STEP1_AUDIT.md`**, **`docs/DEPLOY.md`** (`VI
 ## RSS (single backend rule)
 
 Intake and notify flows use **one** `cid-pdf-api` host with **`segment`** in the JSON body — not a separate operator stack per segment repo. Details: `pdf-backend` / `DOCUMENTATION.md` / CID-docs.
+
+## Vendors (S1–S6 + Connect)
+
+Dated vendor table (active, legacy, marketing-only): **`pdf-backend`** [`docs/VENDORS_S1_S6_CONNECT.md`](https://github.com/G-Love53/pdf-backend/blob/main/docs/VENDORS_S1_S6_CONNECT.md) (canonical; as of 2026-05-15).
