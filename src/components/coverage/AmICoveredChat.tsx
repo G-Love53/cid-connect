@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,6 +6,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { isConnectInsuranceApiEnabled, connectPost } from '@/lib/connectApi';
+import { getUserPolicies } from '@/api';
+import {
+  getCoverageScenariosForSegment,
+  getSegmentDisplayName,
+  type CoverageScenario,
+} from '@/constants/coverageScenarios';
 import { Bot, Send, Shield, Sparkles } from 'lucide-react';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
@@ -13,17 +19,6 @@ type Msg = { role: 'user' | 'assistant'; content: string };
 interface Props {
   onBack: () => void;
 }
-
-const scenarios = [
-  'Water Damage',
-  'Fire',
-  'Slip & Fall',
-  'Theft',
-  'Vehicle Accident',
-  'Employee Injury',
-  'Lawsuit',
-  'Equipment Breakdown',
-];
 
 const AmICoveredChat: React.FC<Props> = ({ onBack }) => {
   const { user } = useAuth();
@@ -34,6 +29,28 @@ const AmICoveredChat: React.FC<Props> = ({ onBack }) => {
   const [lastModelUsed, setLastModelUsed] = useState<string | null>(null);
   const [lastFallbackUsed, setLastFallbackUsed] = useState<boolean>(false);
   const [lastFallbackReason, setLastFallbackReason] = useState<string | null>(null);
+  const [segment, setSegment] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadSegment = async () => {
+      if (!user) return;
+      try {
+        const policies = await getUserPolicies(user.id);
+        const active = policies.find((p) => p.status === 'active') || policies[0];
+        setSegment(active?.segment || null);
+      } catch {
+        setSegment(null);
+      }
+    };
+    loadSegment();
+  }, [user]);
+
+  const scenarios: CoverageScenario[] = useMemo(
+    () => getCoverageScenariosForSegment(segment),
+    [segment],
+  );
+
+  const segmentLabel = useMemo(() => getSegmentDisplayName(segment), [segment]);
 
   const modelBadge = useMemo(() => {
     if (!lastModelUsed) return 'Claude primary, Gemini fallback';
@@ -101,9 +118,12 @@ const AmICoveredChat: React.FC<Props> = ({ onBack }) => {
         <CardContent className="space-y-3">
           <div className="flex gap-2 flex-wrap">
             <Badge className="bg-green-100 text-green-700 border-0">AI Coverage Assistant</Badge>
-            <Badge variant="outline">Policy v2: keys on Render</Badge>
+            <Badge variant="outline">{segmentLabel} scenarios</Badge>
             <Badge variant="outline">{modelBadge}</Badge>
           </div>
+          <p className="text-sm text-gray-600">
+            Tap a scenario built for {segmentLabel.toLowerCase()} businesses, or ask your own question about limits, exclusions, and deductibles.
+          </p>
           <div className="flex gap-2">
             <Button onClick={() => setInChat(true)}>
               <Sparkles className="w-4 h-4 mr-2" />
@@ -116,15 +136,19 @@ const AmICoveredChat: React.FC<Props> = ({ onBack }) => {
 
       {!inChat && (
         <Card className="border-0 shadow-md">
-          <CardHeader><CardTitle>Scenario Quick Checks</CardTitle></CardHeader>
-          <CardContent className="grid grid-cols-2 gap-2">
+          <CardHeader>
+            <CardTitle className="text-base">Quick scenarios for {segmentLabel}</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {scenarios.map((s) => (
               <button
-                key={s}
-                onClick={() => send(`Am I covered for ${s.toLowerCase()}?`)}
-                className="text-left p-3 rounded-lg border hover:bg-gray-50"
+                key={s.id}
+                onClick={() => send(s.prompt)}
+                disabled={sending}
+                className="text-left p-3 rounded-lg border border-green-100 bg-green-50/40 hover:bg-green-50 transition-colors"
               >
-                {s}
+                <span className="font-medium text-sm text-gray-800">{s.label}</span>
+                <span className="block text-xs text-gray-500 mt-1 line-clamp-2">{s.prompt}</span>
               </button>
             ))}
           </CardContent>
@@ -134,10 +158,29 @@ const AmICoveredChat: React.FC<Props> = ({ onBack }) => {
       {inChat && (
         <Card className="border-0 shadow-md">
           <CardContent className="p-4 space-y-3">
+            {!messages.length && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pb-2">
+                {scenarios.slice(0, 4).map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => send(s.prompt)}
+                    disabled={sending}
+                    className="text-left p-2 rounded-md border text-xs hover:bg-gray-50"
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="max-h-80 overflow-y-auto space-y-2">
-              {messages.length === 0 && <p className="text-sm text-gray-500">Ask about limits, exclusions, and deductibles.</p>}
+              {messages.length === 0 && (
+                <p className="text-sm text-gray-500">Ask about limits, exclusions, and deductibles.</p>
+              )}
               {messages.map((m, idx) => (
-                <div key={idx} className={`p-3 rounded-lg ${m.role === 'user' ? 'bg-[#1B3A5F] text-white' : 'bg-gray-100 text-gray-800'}`}>
+                <div
+                  key={idx}
+                  className={`p-3 rounded-lg ${m.role === 'user' ? 'bg-[#1B3A5F] text-white' : 'bg-gray-100 text-gray-800'}`}
+                >
                   <div className="flex items-center gap-2 text-xs mb-1">
                     {m.role === 'assistant' && <Bot className="w-3 h-3" />}
                     {m.role}

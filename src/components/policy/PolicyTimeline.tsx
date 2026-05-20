@@ -23,6 +23,7 @@ import {
   getClaimsForPolicy,
   getCoiRequestsForPolicy,
 } from '@/api';
+import { formatCoiTimelineDescription } from '@/lib/coiUtils';
 import { Policy } from '@/types';
 
 interface PolicyTimelineProps {
@@ -193,13 +194,16 @@ const PolicyTimeline: React.FC<PolicyTimelineProps> = ({ policyId, onBack }) => 
         for (const coi of coiRequests) {
           timelineEvents.push({
             id: `coi-${coi.id}`,
-            date: coi.created_at,
-            title: `COI Requested — ${coi.request_number}`,
-            description: `Certificate for ${coi.certificate_holder_name || 'holder'}. Status: ${coi.status}.`,
+            date: coi.status === 'completed' && coi.updated_at ? coi.updated_at : coi.created_at,
+            title:
+              coi.status === 'completed'
+                ? `COI Sent — ${coi.certificate_holder_name || coi.request_number}`
+                : `COI Requested — ${coi.request_number}`,
+            description: formatCoiTimelineDescription(coi),
             type: 'coi',
             status: coi.status,
             icon: <FileCheck className="w-4 h-4" />,
-            color: coi.status === 'completed' ? 'bg-green-500' : 'bg-blue-400',
+            color: coi.status === 'completed' ? 'bg-green-500' : coi.status === 'failed' ? 'bg-red-500' : 'bg-blue-400',
           });
         }
       }

@@ -42,6 +42,15 @@ import { Policy } from '@/types';
 
 interface RequestCOIProps {
   onBack: () => void;
+  initialHolder?: {
+    holderName: string;
+    address: string;
+    city: string;
+    state: string;
+    zip: string;
+    email: string;
+    certificateType?: string;
+  } | null;
 }
 
 // Certificate type options
@@ -61,7 +70,7 @@ const US_STATES = [
   'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY', 'DC'
 ];
 
-const RequestCOI: React.FC<RequestCOIProps> = ({ onBack }) => {
+const RequestCOI: React.FC<RequestCOIProps> = ({ onBack, initialHolder }) => {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -124,6 +133,20 @@ const RequestCOI: React.FC<RequestCOIProps> = ({ onBack }) => {
       setSelectedPolicy(policy || null);
     }
   }, [selectedPolicyId, policies]);
+
+  useEffect(() => {
+    if (!initialHolder) return;
+    setFormData({
+      holderName: initialHolder.holderName || '',
+      address: initialHolder.address || '',
+      city: initialHolder.city || '',
+      state: initialHolder.state || '',
+      zip: initialHolder.zip || '',
+      email: initialHolder.email || '',
+      certificateType: initialHolder.certificateType || '',
+      additionalInstructions: '',
+    });
+  }, [initialHolder]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));

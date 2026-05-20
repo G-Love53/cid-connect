@@ -56,6 +56,15 @@ const MainApp: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('policy');
   const [serviceView, setServiceView] = useState<ServiceView>('main');
   const [coiView, setCoiView] = useState<'hub' | 'form' | 'history'>('hub');
+  const [coiPrefill, setCoiPrefill] = useState<{
+    holderName: string;
+    address: string;
+    city: string;
+    state: string;
+    zip: string;
+    email: string;
+    certificateType?: string;
+  } | null>(null);
   const [selectedClaim, setSelectedClaim] = useState<Claim | null>(null);
   const [selectedCarrierId, setSelectedCarrierId] = useState<string | null>(null);
   const [selectedQuoteId, setSelectedQuoteId] = useState<string | null>(null);
@@ -65,6 +74,13 @@ const MainApp: React.FC = () => {
 
 
   const handleRequestCOI = () => {
+    setCoiPrefill(null);
+    setCoiView('form');
+    setActiveTab('coi');
+  };
+
+  const handleReissueCoi = (prefill: typeof coiPrefill) => {
+    setCoiPrefill(prefill);
     setCoiView('form');
     setActiveTab('coi');
   };
@@ -150,12 +166,30 @@ const MainApp: React.FC = () => {
 
     if (activeTab === 'coi') {
       if (coiView === 'form') {
-        return <RequestCOI onBack={() => setCoiView('hub')} />;
+        return (
+          <RequestCOI
+            onBack={() => {
+              setCoiPrefill(null);
+              setCoiView('hub');
+            }}
+            initialHolder={coiPrefill}
+          />
+        );
       }
       if (coiView === 'history') {
-        return <COIRequestHistory onBack={() => setCoiView('hub')} />;
+        return (
+          <COIRequestHistory
+            onBack={() => setCoiView('hub')}
+            onReissue={handleReissueCoi}
+          />
+        );
       }
-      return <InstantCOI onStartRequest={() => setCoiView('form')} onViewHistory={() => setCoiView('history')} />;
+      return (
+        <InstantCOI
+          onStartRequest={handleRequestCOI}
+          onViewHistory={() => setCoiView('history')}
+        />
+      );
     }
 
     // Handle Quote tab — pass selectedQuoteId so QuoteScreen loads it
@@ -345,7 +379,7 @@ const MainApp: React.FC = () => {
 
     if (activeTab === 'coi') {
       if (coiView === 'form') return 'Request COI';
-      if (coiView === 'history') return 'COI History';
+      if (coiView === 'history') return 'COI Tracking';
       return 'Instant COI';
     }
 
