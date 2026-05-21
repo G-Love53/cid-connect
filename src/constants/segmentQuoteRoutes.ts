@@ -41,6 +41,12 @@ export const SEGMENT_QUOTE_ROUTES: SegmentQuoteRoute[] = [
     quoteUrl: 'https://www.fitnessinsurancedirect.com/',
     icon: 'home',
   },
+  {
+    id: 'electrical',
+    name: 'Electrical Insurance Direct',
+    quoteUrl: 'https://electricalinsurancedirect.com/',
+    icon: 'zap',
+  },
 ];
 
 /** Intake URL for a quote segment id (falls back to bar). */

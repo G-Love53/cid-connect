@@ -148,7 +148,7 @@ export async function getDistinctSegments(): Promise<import('@/types').Segment[]
     // Convert to Segment objects with auto-generated display info
     const iconMap: Record<string, string> = {
         plumber: 'wrench', roofer: 'home', bar: 'wine',
-        electrician: 'zap', hvac: 'thermometer', restaurant: 'utensils',
+        electrical: 'zap', hvac: 'thermometer', restaurant: 'utensils',
         autoshop: 'car', landscaper: 'trees', bakery: 'cake',
     };
 

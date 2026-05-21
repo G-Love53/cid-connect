@@ -59,6 +59,17 @@ const HVAC_SCENARIOS: CoverageScenario[] = [
   { id: 'lawsuit', label: 'Lawsuit', prompt: 'Am I covered if a customer sues over our HVAC installation or repair?' },
 ];
 
+const ELECTRICAL_SCENARIOS: CoverageScenario[] = [
+  { id: 'wiring', label: 'Faulty Wiring', prompt: 'Am I covered if faulty wiring causes a fire or property damage?' },
+  { id: 'panel', label: 'Panel / Service Upgrade', prompt: 'Am I covered for damage or injury related to panel or service upgrade work?' },
+  { id: 'commercial', label: 'Commercial Contract', prompt: 'Am I covered for electrical work at a commercial job site under contract?' },
+  { id: 'sub', label: 'Subcontractor Issue', prompt: 'Am I covered if a subcontractor causes damage or injury on my electrical job?' },
+  { id: 'property', label: 'Customer Property Damage', prompt: 'Am I covered if we accidentally damage a customer\'s property while working?' },
+  { id: 'employee', label: 'Employee Injury', prompt: 'Am I covered if an employee or apprentice is injured on a job site?' },
+  { id: 'lowvoltage', label: 'Low Voltage / Data', prompt: 'Am I covered for low-voltage, fire alarm, or data/low-voltage installation work?' },
+  { id: 'lawsuit', label: 'Lawsuit', prompt: 'Am I covered if a property owner or GC sues over our electrical work?' },
+];
+
 const FITNESS_SCENARIOS: CoverageScenario[] = [
   { id: 'injury', label: 'Member Injury', prompt: 'Am I covered if a gym member is injured using equipment?' },
   { id: 'slip', label: 'Slip & Fall', prompt: 'Am I covered if someone slips and falls in my fitness facility?' },
@@ -77,13 +88,15 @@ const BY_SEGMENT: Record<string, CoverageScenario[]> = {
   plumber: PLUMBER_SCENARIOS,
   hvac: HVAC_SCENARIOS,
   fitness: FITNESS_SCENARIOS,
+  electrical: ELECTRICAL_SCENARIOS,
 };
 
 export function normalizeSegment(segment?: string | null): string {
   return String(segment || '')
     .trim()
     .toLowerCase()
-    .replace(/^roofing$/, 'roofer');
+    .replace(/^roofing$/, 'roofer')
+    .replace(/^electrician$/, 'electrical');
 }
 
 export function getCoverageScenariosForSegment(segment?: string | null): CoverageScenario[] {
@@ -99,6 +112,7 @@ export function getSegmentDisplayName(segment?: string | null): string {
     plumber: 'Plumbing',
     hvac: 'HVAC',
     fitness: 'Fitness',
+    electrical: 'Electrical',
   };
   return labels[key] || 'Commercial';
 }
