@@ -60,7 +60,18 @@ Connect supports **two modes** for **insured** insurance data (policies, quotes,
 
 **E2E testing:** When validating **quote → bind → Connect**, confirm the **policy row** exists where Connect reads it: **cid-postgres** (and **`clients`** / **`primary_email`**) for bridge mode, or **Famous `policies`** in legacy mode when **`VITE_CID_API_URL`** is unset. Align pipeline + test users so the email exists in **`clients`** for **`/api/connect`**.
 
-See also **`docs/CONNECT_API_BRIDGE_STEP1_AUDIT.md`**, **`docs/DEPLOY.md`** (`VITE_CID_API_URL`, deploy order), **`docs/STAGING_INTEGRATION_TEST_PLAN_DRAFT.md`** §4.
+### ConnectQuote instant bind (Coterie — 2026-06)
+
+Second bind path alongside traditional BoldSign S6:
+
+```text
+segment connectquote.html → POST /api/coterie/connectquote (pdf-backend)
+→ Coterie bindable quote → Stripe (Coterie) or sandbox demo-finalize
+→ policies row (bind_source: coterie) → welcome/bind email → Connect (bind token + email)
+```
+
+- **Pilot:** CO only · **Electrical** + **Fitness** (see **`pdf-backend`** [`docs/connectquote-shipped-2026-06.md`](https://github.com/G-Love53/pdf-backend/blob/main/docs/connectquote-shipped-2026-06.md)).
+- Connect shows bound policies the same as BoldSign path when bridge is enabled; issued carrier PDF ingest from Coterie webhook is **TBD** (Am I Covered uses summary + KB today).
 
 ## Where operator / pipeline data lives (don’t query the wrong DB)
 
