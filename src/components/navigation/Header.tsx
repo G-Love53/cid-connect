@@ -14,7 +14,7 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
           src="https://d64gsuwffb70l.cloudfront.net/6924df0368d7442ec1a565a5_1765667401275_db0552a0.png" 
           alt="CID Connect"
 
-          className="h-16 sm:h-20 md:h-24 w-auto object-contain"
+          className="h-24 sm:h-28 md:h-32 w-auto object-contain"
         />
       </div>
       

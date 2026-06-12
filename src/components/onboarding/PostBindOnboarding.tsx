@@ -44,13 +44,21 @@ const PostBindOnboarding: React.FC<Props> = ({ userId, policies, currentFullName
             <label className="text-sm font-medium">Full name</label>
             <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Your full name" />
           </div>
+          <div className="p-3 bg-blue-50 rounded text-sm border border-blue-100">
+            <div className="font-semibold text-[#1B3A5F] mb-2">Add CID Connect to your home screen</div>
+            <p className="text-gray-600 mb-2">Get one-tap access to COIs, policy docs, and coverage chat.</p>
+            <ul className="list-disc pl-5 text-gray-700 space-y-1">
+              <li><strong>iPhone:</strong> Safari → Share → Add to Home Screen</li>
+              <li><strong>Android:</strong> Chrome menu → Install app / Add to Home screen</li>
+            </ul>
+          </div>
           <div className="p-3 bg-gray-50 rounded text-sm">
-            <div>Quick Tour</div>
-            <ul className="list-disc pl-5">
-              <li>Policy Vault</li>
-              <li>File a Claim</li>
-              <li>Request COI</li>
-              <li>Coverage Chat</li>
+            <div className="font-medium">Quick tour</div>
+            <ul className="list-disc pl-5 mt-1">
+              <li>Policy Vault &amp; timeline</li>
+              <li>Request a COI</li>
+              <li>Am I Covered? chat</li>
+              <li>Download documents</li>
             </ul>
           </div>
           <Button onClick={complete} disabled={saving}>

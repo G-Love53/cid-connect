@@ -98,7 +98,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, prefillEmail }) =>
                 src="https://d64gsuwffb70l.cloudfront.net/6924df0368d7442ec1a565a5_1765667401275_db0552a0.png" 
                 alt="CID Connect"
 
-                className="h-16 w-auto object-contain bg-white rounded-lg p-2"
+                className="h-24 sm:h-28 w-auto object-contain bg-white rounded-lg p-2"
               />
             </div>
             <p className="text-blue-200 text-sm mt-2">Service Portal</p>
