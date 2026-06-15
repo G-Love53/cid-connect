@@ -1,6 +1,6 @@
 /**
  * Canonical public quote intake URLs per segment (same forms used on segment sites).
- * Update these to match your live Netlify / marketing domains.
+ * ConnectQuote segments point at connectquote.html; bar/roofer stay traditional home.
  */
 export interface SegmentQuoteRoute {
   id: string;
@@ -20,7 +20,8 @@ export const SEGMENT_QUOTE_ROUTES: SegmentQuoteRoute[] = [
   {
     id: 'plumber',
     name: 'Plumber Insurance Direct',
-    quoteUrl: 'https://www.plumberinsurancedirect.com/',
+    quoteUrl:
+      'https://www.plumberinsurancedirect.com/connectquote.html?bc=plumbing_contractor',
     icon: 'wrench',
   },
   {
@@ -32,22 +33,45 @@ export const SEGMENT_QUOTE_ROUTES: SegmentQuoteRoute[] = [
   {
     id: 'hvac',
     name: 'HVAC Insurance Direct',
-    quoteUrl: 'https://hvacinsurancedirect.com/',
+    quoteUrl:
+      'https://hvacinsurancedirect.com/connectquote.html?bc=hvac_contractor',
     icon: 'home',
   },
   {
     id: 'fitness',
     name: 'Fitness Insurance Direct',
-    quoteUrl: 'https://www.fitnessinsurancedirect.com/',
+    quoteUrl: 'https://www.fitnessinsurancedirect.com/connectquote.html',
     icon: 'home',
   },
   {
     id: 'electrical',
     name: 'Electrical Insurance Direct',
-    quoteUrl: 'https://electricalinsurancedirect.com/',
+    quoteUrl: 'https://electricalinsurancedirect.com/connectquote.html',
     icon: 'zap',
   },
 ];
+
+/** Fitness ConnectQuote deep links (business class pre-selected). */
+export const FITNESS_CONNECTQUOTE_ROUTES = [
+  {
+    id: 'yoga_studio',
+    name: 'Yoga studio',
+    quoteUrl:
+      'https://www.fitnessinsurancedirect.com/connectquote.html?bc=yoga_studio',
+  },
+  {
+    id: 'pilates_studio',
+    name: 'Pilates / mind-body',
+    quoteUrl:
+      'https://www.fitnessinsurancedirect.com/connectquote.html?bc=pilates_studio',
+  },
+  {
+    id: 'personal_trainer',
+    name: 'Personal trainer',
+    quoteUrl:
+      'https://www.fitnessinsurancedirect.com/connectquote.html?bc=personal_trainer',
+  },
+] as const;
 
 /** Intake URL for a quote segment id (falls back to bar). */
 export function quoteIntakeUrlForSegment(segment: string | null | undefined): string {
