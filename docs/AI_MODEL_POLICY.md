@@ -13,7 +13,7 @@ Same split: **`CoverageChat.tsx`** and **`AmICoveredChat.tsx`** use Path A when 
 
 ## Model Hierarchy
 
-- Primary: Claude (`claude-sonnet-4-20250514`)
+- Primary: Claude (`claude-sonnet-4-6`)
 - Fallback: Gemini (`gemini-2.5-flash`)
 - Fallback on 429/5xx/timeout/empty upstream response.
 
