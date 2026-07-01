@@ -108,12 +108,16 @@ End-to-end flow when the **Connect** build includes **`VITE_CID_API_URL`** (e.g.
 
 ## Next session (start here)
 
+**As of 2026-07-01** — ConnectQuote pilot (CO **Electrical** + **Fitness**) gets **real prod quotes** on Render. **Live card bind** waits on Coterie **`pk_live_`** from **David**; until then **interim demo bind** is enabled (skip payment → policy row + Connect). **Connect branding** shipped.
+
 Paste this as the first message when resuming work:
 
-1. **Baseline:** `git pull origin main` and confirm a clean working tree before changing code (always work from latest `main`).
-2. **Source of truth:** GitHub — no dashboard-only final state. Famous supplies full patch handoffs per **Required Patch Handoff Format** above; Cursor applies, verifies, commits, pushes.
-3. **Scope:** Feature coding for bind-token naming / admin UI cleanup is **closed** unless you open a new ticket with **one** concrete objective (single sentence).
+1. **Baseline:** `git pull origin main` on **`cid-connect`** and **`pdf-backend`**; confirm clean trees.
+2. **Blocker check:** David / Coterie **`pk_live_`** for live card bind — until then use **Complete bind — demo (no charge)** on Electrical/Fitness intake for walkthroughs.
+3. **When `pk_live_` lands:** Set **`COTERIE_DEMO_FINALIZE_ENABLED=false`**, smoke live bind, then un-hold paid campaign links.
+4. **Am I Covered KB:** Coterie carrier KB is in **cid-postgres** (**63 rows**, migrations **`009`–`013`** in **`pdf-backend`**). Chat enrichment via **`connectChatEnrichment.js`** + **`/api/connect/chat`** — verify with a Spinnaker/Coterie policy in bridge mode.
+5. **Scope:** One concrete objective per session (RSS). Logo / marketing mockups are **done for now** — see **`docs/ARCHITECTURE.md`** § Branding.
 
 **Next single objective (fill in before coding):**
 
-> _Example: “Deploy migrations 003–004 and `redeem-bind-token` to Famous prod, then run `reference/docs/BIND_TOKEN_SMOKE_TEST.md`.”_
+> _Example: “Prod bind smoke on electrical + fitness after David’s Stripe key; fix bind payload if Coterie returns Payment info is missing.”_

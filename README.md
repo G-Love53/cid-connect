@@ -14,6 +14,8 @@ Commercial insurance platform with quoting, policy management, claims, COI reque
 
 **Handoff rule:** Famous provides patch handoffs only; Cursor agent applies, verifies, commits, and pushes. A task is done only when a GitHub commit SHA is posted.
 
+**Recent (2026-07-01):** Branding uses **`src/components/brand/BrandLogo.tsx`** + **`public/logo-nav.png`**. ConnectQuote prod quoting is live; bind awaits Coterie prod Stripe — see **`pdf-backend/docs/connectquote-shipped-2026-06.md`**.
+
 Optional: **Netlify** = **static URL + built SPA/forms only** (does not host DB). See **`docs/DEPLOY.md`** and **`docs/ARCHITECTURE.md`**. Not required for local dev.
 
 **Secrets / config (local):** `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` in **`.env`**; optional **`VITE_CID_API_URL`** for **cid-postgres** via **`/api/connect`** (see **`docs/DEPLOY.md`**).

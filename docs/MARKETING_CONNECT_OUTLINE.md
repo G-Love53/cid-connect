@@ -283,8 +283,9 @@ Use this doc as the **source brief** for Claude (or any creative) to write landi
 
 - Repo: `cid-connect` · API bridge: `VITE_CID_API_URL` → `/api/connect/*`
 - Phase 1 shipped: COI tracker + holder book + segment Am I Covered scenarios
+- **Branding (2026-07-01):** Connect uses **`public/logo-nav.png`** via **`BrandLogo`**; marketing site **`CID Website/Netlify/`** uses same asset + **`hero-phone-*.png`** mockups (manual Netlify deploy)
 - Docs: `docs/ARCHITECTURE.md`, `docs/DEPLOY.md`
 
 ---
 
-*Last updated: 2026-05-20 — align creative with deployed Netlify build after Phase 1 push.*
+*Last updated: 2026-07-01 — branding + hero mockups aligned with Connect PWA; ConnectQuote prod bind still gated on Coterie Stripe prod key.*

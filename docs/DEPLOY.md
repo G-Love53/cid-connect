@@ -67,6 +67,10 @@ The host **only serves** built HTML/JS/CSS. It does **not** host the database or
 2. Set **Environment variables** to match local **`.env`** (**`VITE_SUPABASE_URL`**, **`VITE_SUPABASE_ANON_KEY`**, optional **`VITE_SITE_URL`**, and **`VITE_CID_API_URL`** when using the **cid-postgres** bridge). **Redeploy** after changing **`VITE_*`** (they are inlined at build time).
 3. **`netlify.toml`** in this repo defines **`npm run build`**, publish **`dist`**, **Node 20**, SPA **`/*` → `/index.html`**, and cache headers via **`public/_headers`**.
 
+**Static brand assets:** **`public/logo-nav.png`** is copied into **`dist/`** at build time and referenced by **`BrandLogo`** (`/logo-nav.png`). After changing the logo file, commit and push — Netlify rebuild picks it up automatically.
+
+**Marketing homepage (separate host):** **`~/GitHub/CID Website/Netlify/`** — manual Netlify drag-and-drop deploy; includes **`logo-nav.png`** and **`hero-phone-*.png`** for the hero mockups. Not wired to this repo’s CI.
+
 **Connect + API:** Prefer deploying **CID-PDF-API** first when shipping COI or **`/api/connect`** contract changes, then trigger a **Netlify build** so the SPA and API stay compatible (multipart COI, new fields, etc.).
 
 After first deploy, configure **Auth** (Site URL, redirect allowlist, optional SMTP): **`docs/database_AUTH_CONFIG.md`**.
