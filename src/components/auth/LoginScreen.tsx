@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import BrandLogo from '@/components/brand/BrandLogo';
 
 interface LoginScreenProps {
   onSuccess: () => void;
@@ -93,14 +94,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, prefillEmail }) =>
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
           {/* Header with Logo */}
           <div className="bg-gradient-to-r from-[#1B3A5F] to-[#2C5282] p-6 text-center">
-            <div className="flex items-center justify-center mb-3">
-              <img 
-                src="https://d64gsuwffb70l.cloudfront.net/6924df0368d7442ec1a565a5_1765667401275_db0552a0.png" 
-                alt="CID Connect"
-
-                className="h-24 sm:h-28 w-auto object-contain bg-white rounded-lg p-2"
-              />
-            </div>
+            <BrandLogo variant="login" className="mb-1" />
             <p className="text-blue-200 text-sm mt-2">Service Portal</p>
           </div>
 
