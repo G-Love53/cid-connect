@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,12 +6,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { isConnectInsuranceApiEnabled, connectPost } from '@/lib/connectApi';
-import { getUserPolicies } from '@/api';
 import {
   getCoverageScenariosForSegment,
   getSegmentDisplayName,
   type CoverageScenario,
 } from '@/constants/coverageScenarios';
+import { usePolicySelection } from '@/contexts/PolicySelectionContext';
 import { Bot, Send, Shield, Sparkles } from 'lucide-react';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
@@ -22,6 +22,7 @@ interface Props {
 
 const AmICoveredChat: React.FC<Props> = ({ onBack }) => {
   const { user } = useAuth();
+  const { selectedPolicy } = usePolicySelection();
   const [inChat, setInChat] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -29,21 +30,7 @@ const AmICoveredChat: React.FC<Props> = ({ onBack }) => {
   const [lastModelUsed, setLastModelUsed] = useState<string | null>(null);
   const [lastFallbackUsed, setLastFallbackUsed] = useState<boolean>(false);
   const [lastFallbackReason, setLastFallbackReason] = useState<string | null>(null);
-  const [segment, setSegment] = useState<string | null>(null);
-
-  useEffect(() => {
-    const loadSegment = async () => {
-      if (!user) return;
-      try {
-        const policies = await getUserPolicies(user.id);
-        const active = policies.find((p) => p.status === 'active') || policies[0];
-        setSegment(active?.segment || null);
-      } catch {
-        setSegment(null);
-      }
-    };
-    loadSegment();
-  }, [user]);
+  const segment = selectedPolicy?.segment ?? null;
 
   const scenarios: CoverageScenario[] = useMemo(
     () => getCoverageScenariosForSegment(segment),
@@ -71,7 +58,8 @@ const AmICoveredChat: React.FC<Props> = ({ onBack }) => {
         const chatRes = await connectPost<{ message: string }>('/chat', {
           message,
           chatHistory: messages.slice(-8),
-          policyContext: null,
+          policyId: selectedPolicy?.id ?? null,
+          policyContext: selectedPolicy,
           aiSummary: null,
         });
         if (!chatRes.ok || !chatRes.data?.message) {

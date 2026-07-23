@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { PolicySelectionProvider } from '@/contexts/PolicySelectionContext';
 import LoginScreen from './auth/LoginScreen';
 import MainApp from './MainApp';
 import BindTokenRedemption from './auth/BindTokenRedemption';
@@ -55,7 +56,7 @@ const AppContent: React.FC = () => {
     return <LoginScreen onSuccess={() => setIsAuthenticated(true)} />;
   }
 
-  return <MainApp />;
+  return <PolicySelectionProvider><MainApp /></PolicySelectionProvider>;
 };
 
 const AppLayout: React.FC = () => {

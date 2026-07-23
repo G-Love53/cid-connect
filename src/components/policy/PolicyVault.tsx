@@ -22,7 +22,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
-import { getActivePolicyForUser } from '@/api';
+import { usePolicySelection } from '@/contexts/PolicySelectionContext';
 import { Policy } from '@/types';
 
 interface PolicyVaultProps {
@@ -51,28 +51,21 @@ const PolicyVault: React.FC<PolicyVaultProps> = ({
 
 
   const { user } = useAuth();
+  const { selectedPolicy, loading: policyLoading, refreshPolicies } =
+    usePolicySelection();
   const [policy, setPolicy] = useState<Policy | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     if (user) {
-      fetchPolicy();
+      setPolicy(selectedPolicy);
+      setLoading(policyLoading);
     }
-  }, [user, refreshKey]);
+  }, [user, selectedPolicy, policyLoading, refreshKey]);
 
   const fetchPolicy = async () => {
-    if (!user) return;
-    
-    setLoading(true);
-    try {
-      const active = await getActivePolicyForUser(user.id);
-      setPolicy(active);
-    } catch (err) {
-      console.error('Error:', err);
-    } finally {
-      setLoading(false);
-    }
+    await refreshPolicies();
   };
 
   // Function to manually refresh policy data

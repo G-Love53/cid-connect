@@ -24,11 +24,11 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePolicySelection } from '@/contexts/PolicySelectionContext';
 import { Policy, Document, CarrierResource } from '@/types';
 import { toast } from '@/components/ui/use-toast';
 import { 
   getUserDocuments,
-  getActivePolicyForUser,
   getDownloadUrl, 
   downloadDocumentFile,
   getCarrierResources,
@@ -43,6 +43,7 @@ interface DownloadDocumentsProps {
 
 const DownloadDocuments: React.FC<DownloadDocumentsProps> = ({ onBack }) => {
   const { user } = useAuth();
+  const { selectedPolicy } = usePolicySelection();
   const [policy, setPolicy] = useState<Policy | null>(null);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [carrierResources, setCarrierResources] = useState<CarrierResource[]>([]);
@@ -52,25 +53,26 @@ const DownloadDocuments: React.FC<DownloadDocumentsProps> = ({ onBack }) => {
   const [resourcesExpanded, setResourcesExpanded] = useState(true);
 
   useEffect(() => {
-    if (user) {
+    if (user && selectedPolicy) {
       fetchData();
     }
-  }, [user]);
+  }, [user, selectedPolicy?.id]);
 
   const fetchData = async () => {
-    if (!user) return;
+    if (!user || !selectedPolicy) return;
     
     try {
-      const policyData = await getActivePolicyForUser(user.id);
-      if (policyData) {
-        setPolicy(policyData);
-        const resources = await getCarrierResources(policyData.carrier, policyData.segment);
-        setCarrierResources(resources);
-      }
+      setPolicy(selectedPolicy);
+      const resources = await getCarrierResources(
+        selectedPolicy.carrier,
+        selectedPolicy.segment,
+      );
+      setCarrierResources(resources);
 
-      // Fetch documents from the documents table
       const userDocuments = await getUserDocuments(user.id);
-      setDocuments(userDocuments);
+      setDocuments(
+        userDocuments.filter((d) => d.policy_id === selectedPolicy.id),
+      );
 
     } catch (err) {
       console.error('Error fetching data:', err);
