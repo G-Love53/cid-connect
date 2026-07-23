@@ -34,19 +34,21 @@ export PROJECT_REF="zyaqtsmeeygcyqrvpyuy"
 - **`site_url`** — Public app origin (no trailing slash required if your client accepts it).
 - **`uri_allow_list`** — **String** of allowed redirect URLs (Supabase dashboard uses the same allowlist; format is often comma-separated entries).
 
-Example (production Netlify app):
+Example (production — custom domain):
 
 ```bash
 curl -sS -X PATCH "https://api.supabase.com/v1/projects/${PROJECT_REF}/config/auth" \
   -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
-    "site_url": "https://cid-connect.netlify.app",
-    "uri_allow_list": "https://cid-connect.netlify.app/**"
+    "site_url": "https://connect.commercialinsurance-direct.com",
+    "uri_allow_list": "https://connect.commercialinsurance-direct.com/**,https://cid-connect.netlify.app/**"
   }'
 ```
 
-Include **`https://cid-connect.netlify.app/reset-password`** explicitly if you do not use a wildcard.
+Include **`https://connect.commercialinsurance-direct.com/reset-password`** explicitly if you do not use a wildcard.
+
+Legacy **`cid-connect.netlify.app`** entries can be removed after welcome/reset emails no longer use that host (see **`docs/CUSTOM_DOMAIN.md`**).
 
 ---
 

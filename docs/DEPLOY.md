@@ -26,7 +26,7 @@ Set these wherever the **built** app runs (Netlify **Site settings → Environme
 |----------|----------|---------|
 | **`VITE_SUPABASE_URL`** | Yes | Famous / DatabasePad project URL (browser-safe). |
 | **`VITE_SUPABASE_ANON_KEY`** | Yes | **Anon** key only — never the service role. |
-| **`VITE_SITE_URL`** | Optional | Canonical public origin for password reset / magic links (e.g. `https://your-connect.netlify.app`). If unset, the browser origin is used; Auth redirect allowlist must still match. |
+| **`VITE_SITE_URL`** | **Required in production** | Canonical public origin for password reset / magic links: `https://connect.commercialinsurance-direct.com`. Must match Netlify custom domain + Supabase Auth `site_url`. See **`docs/CUSTOM_DOMAIN.md`**. |
 | **`VITE_CID_API_URL`** | Optional but **recommended** for production | Base URL of **CID-PDF-API** (no trailing slash), e.g. `https://cid-pdf-api.onrender.com`. When set, **insured** policy/quote/doc/claim/COI reads and most writes use **`/api/connect/*`** on that host (**`X-User-Email`** / **`X-User-Id`**). **COI submit** (bridge) uses **`POST /api/connect/coi/request`** only — JSON or multipart in one request; no separate segment **`/request-coi`** call. **Claims** still use **`app_settings`** **`segment_backend_*`** for **`fileClaim`** notification after **`POST /api/connect/claims`**. Other segment **`fetch`** paths follow **`api.ts`**. Bind is not performed inside Connect; canonical policies for the bridge come from **cid-postgres** after operator S6. |
 
 **Deploy order (COI + bridge):** Ship **CID-PDF-API** (`pdf-backend` on Render) with **`/api/connect/coi/request`** (multipart + R2) **before or with** a Connect build that sends multipart COI. Older API builds may not accept **`multipart/form-data`** on that route.
@@ -73,7 +73,7 @@ The host **only serves** built HTML/JS/CSS. It does **not** host the database or
 
 **Connect + API:** Prefer deploying **CID-PDF-API** first when shipping COI or **`/api/connect`** contract changes, then trigger a **Netlify build** so the SPA and API stay compatible (multipart COI, new fields, etc.).
 
-After first deploy, configure **Auth** (Site URL, redirect allowlist, optional SMTP): **`docs/database_AUTH_CONFIG.md`**.
+After first deploy, configure **custom domain** and **Auth**: **`docs/CUSTOM_DOMAIN.md`**, **`docs/database_AUTH_CONFIG.md`**.
 
 ---
 

@@ -12,3 +12,11 @@ NODE_VERSION = "20"
   to = "/index.html"
   status = 200
   force = false
+
+# After custom domain is live: send legacy Netlify subdomain traffic to branded host.
+[[redirects]]
+  from = "/*"
+  to = "https://connect.commercialinsurance-direct.com/:splat"
+  status = 301
+  force = true
+  conditions = {Host = ["cid-connect.netlify.app"]}

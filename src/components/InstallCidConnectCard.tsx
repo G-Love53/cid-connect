@@ -1,4 +1,5 @@
 import React from 'react';
+import { getPublicSiteHostname } from '@/lib/siteUrl';
 
 type Tab = 'ios' | 'android' | 'desktop';
 
@@ -7,6 +8,7 @@ const tabButtonBase =
 
 export const InstallCidConnectCard: React.FC = () => {
   const [tab, setTab] = React.useState<Tab>('ios');
+  const connectHost = getPublicSiteHostname();
 
   return (
     <section className="mt-6 rounded-2xl border border-slate-200 bg-slate-900 text-slate-50 shadow-sm">
@@ -60,7 +62,7 @@ export const InstallCidConnectCard: React.FC = () => {
               Open <span className="font-semibold">Safari</span> (not Chrome).
             </li>
             <li>
-              Go to <span className="font-semibold">cid-connect.netlify.app</span>.
+              Go to <span className="font-semibold">{connectHost}</span>.
             </li>
             <li>
               Tap the <span className="font-semibold">Share</span> button
@@ -84,7 +86,7 @@ export const InstallCidConnectCard: React.FC = () => {
               Open <span className="font-semibold">Chrome</span>.
             </li>
             <li>
-              Go to <span className="font-semibold">cid-connect.netlify.app</span>.
+              Go to <span className="font-semibold">{connectHost}</span>.
             </li>
             <li>
               Tap the <span className="font-semibold">⋮</span> menu in the top‑right corner.
@@ -106,7 +108,7 @@ export const InstallCidConnectCard: React.FC = () => {
               Open <span className="font-semibold">Chrome</span> on your computer.
             </li>
             <li>
-              Go to <span className="font-semibold">cid-connect.netlify.app</span>.
+              Go to <span className="font-semibold">{connectHost}</span>.
             </li>
             <li>
               Click the <span className="font-semibold">Install</span> icon in the

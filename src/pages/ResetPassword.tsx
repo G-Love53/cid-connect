@@ -11,7 +11,7 @@ const RECOVERY_FAIL_AFTER_MS = 60_000;
 
 /**
  * Supabase recovery: email links to this path; tokens are in the URL hash.
- * redirectTo must be allowlisted (e.g. https://cid-connect.netlify.app/reset-password).
+ * redirectTo must be allowlisted (e.g. https://connect.commercialinsurance-direct.com/reset-password).
  */
 const ResetPassword: React.FC = () => {
   const navigate = useNavigate();
